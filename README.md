@@ -141,3 +141,14 @@ python3 scripts/check_publication_safety.py
 
 The project currently uses the MIT license. Experimental data released later
 must carry an explicit data license and provenance statement.
+
+## First publication
+
+The repository owner can perform the one-time publication after authenticating
+GitHub CLI. The script refuses a dirty worktree, an existing `origin`, an
+existing same-name repository, failed tests, or a failed safety scan:
+
+```bash
+gh auth login -h github.com -p https --web --clipboard --skip-ssh-key
+./scripts/publish_public_repo.sh
+```
