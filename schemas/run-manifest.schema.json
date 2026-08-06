@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chenxuniu/active-bytes-law/schemas/run-manifest.schema.json",
+  "title": "Sanitized Active-Bytes public run manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "cell_id",
+    "split",
+    "repeat",
+    "campaign_lock_sha256",
+    "campaign_lock_uri",
+    "software",
+    "model",
+    "engine_contract",
+    "runtime_accounting",
+    "requested_geometry",
+    "realized_geometry",
+    "artifacts",
+    "qc"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "cell_id": {"type": "string", "minLength": 1},
+    "split": {"type": "string", "minLength": 1},
+    "repeat": {"type": "integer", "minimum": 1},
+    "campaign_lock_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "campaign_lock_uri": {"type": "string", "minLength": 1},
+    "device_label": {"type": "string", "pattern": "^gpu-[0-9]+$"},
+    "device_fingerprint_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "software": {"type": "object"},
+    "model": {"type": "object"},
+    "engine_contract": {"type": "object"},
+    "runtime_accounting": {
+      "type": "object",
+      "required": ["weight_storage_bytes", "kv_bytes_per_token"],
+      "properties": {
+        "weight_storage_bytes": {"type": "integer", "minimum": 1},
+        "kv_bytes_per_token": {"type": "integer", "minimum": 1},
+        "tensor_inventory_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      },
+      "additionalProperties": true
+    },
+    "requested_geometry": {
+      "type": "object",
+      "required": ["prompt_tokens", "target_batch", "requested_api_output_tokens", "metered_decode_tokens_per_request"]
+    },
+    "realized_geometry": {
+      "type": "object",
+      "required": ["effective_batch", "mean_attended_context", "metered_useful_tokens"]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "artifact_uri", "sha256", "bytes"],
+        "properties": {
+          "role": {"type": "string"},
+          "artifact_uri": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "bytes": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
+    },
+    "qc": {
+      "type": "object",
+      "required": ["status", "reasons"],
+      "properties": {
+        "status": {"enum": ["pass", "fail", "capacity-censored", "excluded"]},
+        "reasons": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

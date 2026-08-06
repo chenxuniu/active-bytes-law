@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this protocol or software, please cite the archived release and the accompanying paper."
+title: "Active-Bytes Law: Reproducible Experiments for LLM Inference Energy"
+type: software
+authors:
+  - name: "Active-Bytes Law Authors"
+version: 0.1.0
+date-released: 2026-08-06
+license: MIT
+repository-code: "https://github.com/chenxuniu/active-bytes-law"

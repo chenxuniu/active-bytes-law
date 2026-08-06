@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "campaign_id": "active-bytes-v1-weight-treatment-btop64",
+  "seed": 20270808,
+  "defaults": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "model_id": "qwen2p5-7b",
+    "model_revision": "PIN_BEFORE_PILOT",
+    "weight_dtype": "fp8_e4m3_engine_native",
+    "kv_cache_dtype": "bf16",
+    "context_tokens": 8192,
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "requested_api_output_tokens": 129,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 128,
+    "temperature": 0,
+    "ignore_eos": true,
+    "prefix_cache": false,
+    "speculative_decode": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "power_limit_w": 700,
+    "minimum_decode_seconds_per_repeat": 30,
+    "repetitions": 5
+  },
+  "blocks": [
+    {
+      "block_id": "weight-fp8",
+      "split": "weight-treatment",
+      "axes": {"target_batch": [4, 8, 16, 32, 64]}
+    }
+  ]
+}

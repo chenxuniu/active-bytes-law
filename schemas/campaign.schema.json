@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/chenxuniu/active-bytes-law/schemas/campaign.schema.json",
+  "title": "Active-Bytes campaign source",
+  "type": "object",
+  "required": ["schema_version", "campaign_id", "seed", "defaults", "blocks"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "campaign_id": {"type": "string", "minLength": 1},
+    "seed": {"type": "integer"},
+    "defaults": {"type": "object"},
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["block_id", "split"],
+        "properties": {
+          "block_id": {"type": "string", "minLength": 1},
+          "split": {
+            "enum": [
+              "pilot",
+              "coefficient-fit",
+              "residual-calibration",
+              "evaluation",
+              "architecture-holdout",
+              "placebo",
+              "dynamic",
+              "weight-treatment",
+              "profiler-anchor"
+            ]
+          },
+          "constants": {"type": "object"},
+          "axes": {
+            "type": "object",
+            "additionalProperties": {"type": "array", "minItems": 1}
+          },
+          "cells": {"type": "array", "minItems": 1, "items": {"type": "object"}}
+        },
+        "oneOf": [
+          {"required": ["axes"], "not": {"required": ["cells"]}},
+          {"required": ["cells"], "not": {"required": ["axes"]}}
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

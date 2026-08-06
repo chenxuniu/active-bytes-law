@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "active-bytes-law"
+version = "0.1.0"
+description = "Auditable experiment control and validation for the Active-Bytes Law"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Active-Bytes Law Authors"}]
+dependencies = []
+
+[project.scripts]
+ab-expand-campaign = "active_bytes.campaign:main"
+ab-validate-trace = "active_bytes.validation:main"
+ab-summarize-energy = "active_bytes.energy:main"
+ab-integrate-power = "active_bytes.telemetry:main"
+ab-validate-manifest = "active_bytes.artifacts:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

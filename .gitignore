@@ -1,0 +1,42 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Private node provenance: never publish these directories.
+artifacts/private/
+results/private/
+results/raw/
+results/telemetry/
+logs/
+
+# Large or potentially identifying profiler artifacts.
+*.ncu-rep
+*.nsys-rep
+*.qdrep
+*.sqlite
+*.tar
+*.tar.gz
+*.zip
+
+# Models and checkpoints.
+*.safetensors
+*.pt
+*.pth
+*.bin
+checkpoints/
+models/

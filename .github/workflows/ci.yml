@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Publication safety
+        run: python scripts/check_publication_safety.py
+      - name: Validate campaign expansion
+        shell: bash
+        run: |
+          mkdir -p /tmp/active-bytes-locks
+          for config in configs/campaigns/*.json; do
+            python scripts/expand_campaign.py "$config" \
+              --output "/tmp/active-bytes-locks/$(basename "${config%.json}").lock.json"
+          done

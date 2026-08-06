@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "campaign_id": "active-bytes-v1-dynamic-parked-release",
+  "seed": 20270811,
+  "defaults": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "model_id": "qwen2p5-7b",
+    "model_revision": "PIN_BEFORE_PILOT",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "short_context_tokens": 1024,
+    "long_context_tokens": 8192,
+    "mixed_short_fraction": 0.5,
+    "release_mode": "parked-decode-only",
+    "capacity_scout_is_excluded": true,
+    "requested_api_output_tokens": 129,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 128,
+    "temperature": 0,
+    "ignore_eos": true,
+    "prefix_cache": false,
+    "speculative_decode": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "power_limit_w": 700,
+    "minimum_decode_seconds_per_repeat": 30,
+    "repetitions": 5
+  },
+  "blocks": [
+    {
+      "block_id": "dynamic-realized-state",
+      "split": "dynamic",
+      "axes": {
+        "prompt_class": ["short-1k", "long-8k", "mixed-50-50"],
+        "stable_decode_capacity_fraction": [0.25, 0.55, 0.85]
+      }
+    }
+  ]
+}

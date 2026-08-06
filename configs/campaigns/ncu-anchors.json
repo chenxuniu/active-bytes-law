@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "campaign_id": "active-bytes-v1-ncu-anchors",
+  "seed": 20270812,
+  "defaults": {
+    "model_revision": "PIN_BEFORE_PILOT",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "requested_api_output_tokens": 129,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 128,
+    "nvtx_range": "activebytes_decode",
+    "profiler_domain": "diagnostic-only",
+    "repetitions": 3
+  },
+  "blocks": [
+    {
+      "block_id": "ncu-qwen",
+      "split": "profiler-anchor",
+      "constants": {"model": "Qwen/Qwen2.5-7B-Instruct", "model_id": "qwen2p5-7b", "weight_dtype": "bf16"},
+      "cells": [
+        {"cell_id": "nq-l4096-b4-bf16", "context_tokens": 4096, "target_batch": 4, "kv_cache_dtype": "bf16"},
+        {"cell_id": "nq-l4096-b4-fp8", "context_tokens": 4096, "target_batch": 4, "kv_cache_dtype": "fp8_e4m3"},
+        {"cell_id": "nq-l4096-b32-bf16", "context_tokens": 4096, "target_batch": 32, "kv_cache_dtype": "bf16"},
+        {"cell_id": "nq-l4096-b32-fp8", "context_tokens": 4096, "target_batch": 32, "kv_cache_dtype": "fp8_e4m3"},
+        {"cell_id": "nq-l8192-b16-bf16", "context_tokens": 8192, "target_batch": 16, "kv_cache_dtype": "bf16"},
+        {"cell_id": "nq-l8192-b16-fp8", "context_tokens": 8192, "target_batch": 16, "kv_cache_dtype": "fp8_e4m3"},
+        {"cell_id": "nq-l8192-b64-bf16", "context_tokens": 8192, "target_batch": 64, "kv_cache_dtype": "bf16"},
+        {"cell_id": "nq-l8192-b64-fp8", "context_tokens": 8192, "target_batch": 64, "kv_cache_dtype": "fp8_e4m3"},
+        {"cell_id": "nq-l16384-b8-bf16", "context_tokens": 16384, "target_batch": 8, "kv_cache_dtype": "bf16"},
+        {"cell_id": "nq-l16384-b8-fp8", "context_tokens": 16384, "target_batch": 8, "kv_cache_dtype": "fp8_e4m3"},
+        {"cell_id": "nq-l16384-b32-bf16", "context_tokens": 16384, "target_batch": 32, "kv_cache_dtype": "bf16"},
+        {"cell_id": "nq-l16384-b32-fp8", "context_tokens": 16384, "target_batch": 32, "kv_cache_dtype": "fp8_e4m3"}
+      ]
+    },
+    {
+      "block_id": "ncu-llama",
+      "split": "profiler-anchor",
+      "constants": {"model": "meta-llama/Llama-3.1-8B-Instruct", "model_id": "llama3p1-8b", "weight_dtype": "bf16", "kv_cache_dtype": "bf16"},
+      "cells": [
+        {"cell_id": "nl-l2048-b4", "context_tokens": 2048, "target_batch": 4},
+        {"cell_id": "nl-l4096-b16", "context_tokens": 4096, "target_batch": 16},
+        {"cell_id": "nl-l8192-b32", "context_tokens": 8192, "target_batch": 32}
+      ]
+    },
+    {
+      "block_id": "ncu-weight",
+      "split": "profiler-anchor",
+      "constants": {"model": "Qwen/Qwen2.5-7B-Instruct", "model_id": "qwen2p5-7b", "weight_dtype": "fp8_e4m3_engine_native", "kv_cache_dtype": "bf16"},
+      "cells": [
+        {"cell_id": "nw-l8192-b16-fp8w", "context_tokens": 8192, "target_batch": 16}
+      ]
+    }
+  ]
+}

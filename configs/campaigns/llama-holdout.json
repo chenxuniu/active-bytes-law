@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "campaign_id": "active-bytes-v1-llama-architecture-holdout",
+  "seed": 20270810,
+  "defaults": {
+    "model": "meta-llama/Llama-3.1-8B-Instruct",
+    "model_id": "llama3p1-8b",
+    "model_revision": "PIN_BEFORE_PILOT",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "requested_api_output_tokens": 129,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 128,
+    "temperature": 0,
+    "ignore_eos": true,
+    "prefix_cache": false,
+    "speculative_decode": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "power_limit_w": 700,
+    "minimum_decode_seconds_per_repeat": 30,
+    "repetitions": 5
+  },
+  "blocks": [
+    {
+      "block_id": "llama-holdout",
+      "split": "architecture-holdout",
+      "axes": {
+        "context_tokens": [2048, 4096, 8192],
+        "target_batch": [4, 8, 16, 32]
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "user-declared; verify with whitelist preflight before experiments",
+  "operating_system": "Ubuntu 22.04 x86_64",
+  "gpu": {
+    "count": 1,
+    "product_family": "NVIDIA H100 SXM-class",
+    "memory_gib": 80,
+    "memory_type": "HBM3",
+    "mig_expected": "disabled",
+    "experiment_power_limit_w": 700
+  },
+  "cpu": {
+    "model": "AMD EPYC 7413",
+    "sockets": 1,
+    "physical_cores": 24,
+    "threads_per_core": 2
+  },
+  "host_memory_gib": 256,
+  "network_adapter_family": "ConnectX-4 Lx",
+  "notes": [
+    "No hostname, address, device UUID, serial number, lease identifier, site, or user identity is published.",
+    "Driver, CUDA, DCGM, Nsight, vLLM, PyTorch, container, and model revisions must be measured and frozen before the pilot."
+  ]
+}
