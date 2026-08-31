@@ -39,11 +39,15 @@ of approximately 100 ms and median quanta near 15--16 J. Treat 5 seconds as the
 minimum counter-endpoint interval for the 2% gate and retain the preregistered
 30-second aggregate as the preferred measurement duration.
 
-For the loaded-meter gate, start scoped telemetry before engine initialization,
-run the long-window doctor, and retain samples after `DECODE_DONE`. Align the
-telemetry offline with `scripts/align_loaded_audit.py`; both containers share
-the host monotonic clock. The gate checks exact boundary bracketing, sampling
-gaps, and module-power integration against the cumulative counter.
+For the loaded-meter gate, starting scoped telemetry before engine
+initialization is unsafe because model loading and graph capture can take
+minutes. Instead,
+launch the doctor with paired `--ready-file` and `--start-gate-file` paths. Wait
+for `ENGINE_READY`, start scoped telemetry, and only then create the start-gate
+file. Retain samples after `DECODE_DONE` and align them offline with
+`scripts/align_loaded_audit.py`; both containers share the host monotonic
+clock. The gate checks exact boundary bracketing, sampling gaps, and
+module-power integration against the cumulative counter.
 
 For GH200 studies, report both outcomes without mixing baselines:
 

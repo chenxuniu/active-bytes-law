@@ -131,6 +131,12 @@ enough decode steps to exceed `--minimum-counter-duration-seconds 5`. Use
 without flooding the terminal. This audit characterizes counter observability;
 it does not enter coefficient fitting.
 
+Never guess a fixed telemetry lead time around model initialization. Use the
+doctor's paired `--ready-file` / `--start-gate-file` handshake: launch the
+doctor, wait for `ENGINE_READY`, launch telemetry, then release the doctor by
+creating the unique start-gate file. This guarantees that samples bracket the
+later bootstrap and `GO/DONE` interval even when graph capture takes minutes.
+
 Do not continue until the doctor demonstrates a real bootstrap barrier. TTFT,
 client timestamps, or subtraction of a separately timed prefill do not satisfy
 the boundary contract.

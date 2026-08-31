@@ -1,10 +1,16 @@
 from pathlib import Path
 import sys
+import tempfile
+import threading
+import time
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from active_bytes.decode_doctor import validate_doctor_observations  # noqa: E402
+from active_bytes.decode_doctor import (  # noqa: E402
+    _wait_for_external_start_gate,
+    validate_doctor_observations,
+)
 
 
 def valid_observations():
@@ -51,6 +57,27 @@ class DecodeDoctorTests(unittest.TestCase):
             valid_observations()[:-1], bootstrap_tokens=1, measured_decode_tokens=8
         )
         self.assertFalse(report["qc_pass"])
+
+    def test_external_gate_writes_ready_then_waits_for_release(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ready = Path(directory) / "ready.json"
+            gate = Path(directory) / "go"
+
+            def release():
+                time.sleep(0.05)
+                gate.touch()
+
+            thread = threading.Thread(target=release)
+            thread.start()
+            report = _wait_for_external_start_gate(
+                ready_file=ready,
+                start_gate_file=gate,
+                timeout_seconds=1.0,
+            )
+            thread.join()
+            self.assertTrue(ready.exists())
+            self.assertIsNotNone(report)
+            self.assertGreaterEqual(report["wait_seconds"], 0.04)
 
 
 if __name__ == "__main__":

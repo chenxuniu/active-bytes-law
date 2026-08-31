@@ -95,6 +95,44 @@ def _single_request_output(outputs: list[Any], request_id: str) -> Any:
     return output
 
 
+def _wait_for_external_start_gate(
+    *,
+    ready_file: Path | None,
+    start_gate_file: Path | None,
+    timeout_seconds: float,
+) -> dict[str, Any] | None:
+    if ready_file is None and start_gate_file is None:
+        return None
+    if ready_file is None or start_gate_file is None:
+        raise ValueError("ready-file and start-gate-file must be supplied together")
+    if timeout_seconds <= 0:
+        raise ValueError("gate timeout must be positive")
+    ready_ns = time.monotonic_ns()
+    _atomic_write_json(
+        ready_file,
+        {
+            "schema_version": 1,
+            "state": "ENGINE_READY",
+            "ready_monotonic_ns": ready_ns,
+        },
+    )
+    deadline = time.monotonic() + timeout_seconds
+    while not start_gate_file.exists():
+        if time.monotonic() >= deadline:
+            raise TimeoutError(
+                f"start gate {start_gate_file} did not appear within {timeout_seconds}s"
+            )
+        time.sleep(0.05)
+    released_ns = time.monotonic_ns()
+    return {
+        "ready_file": str(ready_file),
+        "start_gate_file": str(start_gate_file),
+        "ready_monotonic_ns": ready_ns,
+        "released_monotonic_ns": released_ns,
+        "wait_seconds": (released_ns - ready_ns) / 1e9,
+    }
+
+
 def run_vllm_doctor(
     *,
     model: str,
@@ -105,6 +143,9 @@ def run_vllm_doctor(
     seed: int,
     enforce_eager: bool,
     minimum_counter_duration_seconds: float,
+    ready_file: Path | None,
+    start_gate_file: Path | None,
+    gate_timeout_seconds: float,
 ) -> dict[str, Any]:
     """Execute one bootstrap step followed by exact pure-decode engine steps."""
 
@@ -169,6 +210,11 @@ def run_vllm_doctor(
     )
     request_id = "decode-doctor-0"
     engine.add_request(request_id, prompt, params)
+    external_gate = _wait_for_external_start_gate(
+        ready_file=ready_file,
+        start_gate_file=start_gate_file,
+        timeout_seconds=gate_timeout_seconds,
+    )
 
     pynvml.nvmlInit()
     try:
@@ -296,6 +342,7 @@ def run_vllm_doctor(
             "decode_done_monotonic_ns": decode_done_ns,
             "counter_read_end_monotonic_ns": counter_read_end_ns,
         },
+        "external_start_gate": external_gate,
         "energy": {
             "scope": "module-on-validated-GH200-stack",
             "counter_start_mj": counter_start_mj,
@@ -327,6 +374,9 @@ def main(argv: list[str] | None = None) -> int:
         "--runtime-mode", choices=("eager", "graph"), default="eager"
     )
     parser.add_argument("--minimum-counter-duration-seconds", type=float, default=0.0)
+    parser.add_argument("--ready-file", type=Path)
+    parser.add_argument("--start-gate-file", type=Path)
+    parser.add_argument("--gate-timeout-seconds", type=float, default=900.0)
     parser.add_argument("--print-summary-only", action="store_true")
     parser.add_argument("--output-json", required=True, type=Path)
     args = parser.parse_args(argv)
@@ -339,6 +389,9 @@ def main(argv: list[str] | None = None) -> int:
         seed=args.seed,
         enforce_eager=args.runtime_mode == "eager",
         minimum_counter_duration_seconds=args.minimum_counter_duration_seconds,
+        ready_file=args.ready_file,
+        start_gate_file=args.start_gate_file,
+        gate_timeout_seconds=args.gate_timeout_seconds,
     )
     _atomic_write_json(args.output_json, report)
     printed = report
