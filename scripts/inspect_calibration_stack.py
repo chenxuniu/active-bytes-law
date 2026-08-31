@@ -73,6 +73,7 @@ def main() -> int:
         report["packages"]["llmcompressor"] == "0.6.0.1"
         and report["packages"]["compressed-tensors"] == "0.10.2"
         and report["packages"]["transformers"] == "4.52.4"
+        and report["packages"]["vllm"] is None
     )
     report["qc_pass"] = required and all("error" not in row for row in report["api"])
     print(json.dumps(report, indent=2, sort_keys=True))

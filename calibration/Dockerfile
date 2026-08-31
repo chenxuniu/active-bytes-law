@@ -3,7 +3,8 @@ FROM ${BASE_IMAGE}
 
 COPY calibration/requirements-gh200.txt /tmp/requirements-gh200.txt
 
-RUN python3 -m pip install \
+RUN python3 -m pip uninstall --yes vllm \
+    && python3 -m pip install \
         --no-cache-dir \
         --no-deps \
         --requirement /tmp/requirements-gh200.txt \
