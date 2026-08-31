@@ -50,6 +50,22 @@ def trace_rows(prompt=4096, batch=8, steps=128):
 
 
 class TraceValidationTests(unittest.TestCase):
+    def test_balanced_prompt_geometry_hits_exact_target_mean(self):
+        rows = trace_rows(prompt=9, batch=2, steps=2)
+        for index, row in enumerate(rows):
+            row["attended_length_by_request"]["r1"] = 10 + index
+        report = validate_static_trace(
+            rows,
+            expected_batch=2,
+            target_mean_attended_history_tokens=10,
+            measured_decode_tokens=2,
+        )
+        self.assertTrue(report["qc_pass"], report["errors"])
+        self.assertEqual(report["mean_attended_context"], 10)
+        self.assertEqual(
+            report["prompt_tokens_by_request"], {"r0": 9, "r1": 10}
+        )
+
     def test_static_trace_passes_and_has_expected_geometry(self):
         report = validate_static_trace(
             trace_rows(), expected_batch=8, prompt_tokens=4096, measured_decode_tokens=128

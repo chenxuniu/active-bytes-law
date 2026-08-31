@@ -17,7 +17,7 @@ historical context. We also track the new-token KV write,
 
 This repository is the public experiment contract and artifact index for the
 paper. It does **not** yet claim that the law is confirmed. The first milestone
-is a four-cell acceptance pilot on one H100; confirmatory cells are opened only
+is a four-cell acceptance pilot on one GH200; H100 and other confirmatory cells are opened only
 after decode boundaries, token conservation, energy agreement, and HBM-counter
 checks pass.
 
@@ -47,7 +47,7 @@ the `DECODE_READY -> GO` handshake; it ends after exactly 128 useful decode
 iterations with `DECODE_DONE -> ACK`. A client-wide serving benchmark that
 contains prefill is retrospective evidence, not confirmatory Active-Bytes data.
 
-## Start here on the H100 node
+## Start here on the measurement node
 
 ```bash
 git clone https://github.com/chenxuniu/active-bytes-law.git

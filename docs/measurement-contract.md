@@ -25,32 +25,36 @@ layout, and kernel choice intervene. NCU anchors test that relationship.
 
 All requests produce exactly one bootstrap output outside the energy interval
 and are then parked. Both interval boundaries use `torch.cuda.synchronize()`.
-The host reads cumulative DCGM total energy after the ready marker and after the
-done marker. The delta is converted from millijoules to joules explicitly.
+The host applies the validated platform-specific meter after the ready marker
+and after the done marker. Counter values are converted from millijoules to
+joules explicitly; their scope must be declared rather than inferred.
 
 ```text
-requested API outputs/request:       129
+requested API outputs/request:      1025
 unmetered bootstrap outputs/request:   1
-metered pure-decode outputs/request:  128
-metered useful outputs/episode:       128 * B
+metered pure-decode outputs/request: 1024
+metered useful outputs/episode:      1024 * B
 ```
 
 ## Static identification trace
 
 Each JSONL row represents one pure-decode engine iteration. In addition to the
 schema-required fields, retain raw runtime sequence length when available. For
-iteration `t=0..127`, the normalized historical length is `I+t`.
+iteration `t=0..1023`, request `r` has normalized historical length `I_r+t`.
+Prompt lengths use a balanced integer construction so their request mean plus
+`511.5` equals the cell's target mean attended history exactly. For example,
+the 4K, `B=8` cell uses four 3,584-token and four 3,585-token prompts.
 
 The static validator rejects:
 
-- an iteration count other than the declared 128;
+- an iteration count other than the declared 1024;
 - non-contiguous IDs or non-monotonic timestamps;
 - changing request membership or one-token-per-request violations;
 - mismatch between active requests, useful-token keys, and attended lengths;
 - any speculation, late entry/exit, preemption, swap, recomputation, prefix
   reuse, or offload;
 - backend, graph, weight dtype, or KV dtype drift;
-- `B_eff != B` or `L_bar != I+63.5`.
+- `B_eff != B` or `L_bar` unequal to the preregistered target.
 
 ## Energy aggregation
 

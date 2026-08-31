@@ -4,7 +4,10 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from active_bytes.batch_doctor import validate_batch_observations  # noqa: E402
+from active_bytes.batch_doctor import (  # noqa: E402
+    balanced_prompt_lengths,
+    validate_batch_observations,
+)
 
 
 def valid_rows(batch=3, measured=2):
@@ -30,6 +33,32 @@ def valid_rows(batch=3, measured=2):
 
 
 class BatchDoctorTests(unittest.TestCase):
+    def test_balanced_prompts_hit_exact_4k_mean(self):
+        prompts = balanced_prompt_lengths(
+            target_mean_attended_history_tokens=4096,
+            batch=8,
+            measured_decode_tokens=1024,
+        )
+        self.assertEqual(prompts, [3584] * 4 + [3585] * 4)
+        self.assertEqual(sum(prompts) / len(prompts) + 511.5, 4096)
+
+    def test_odd_batch_rejects_half_token_mean_prompt(self):
+        with self.assertRaisesRegex(ValueError, "cannot realize"):
+            balanced_prompt_lengths(
+                target_mean_attended_history_tokens=4096,
+                batch=7,
+                measured_decode_tokens=1024,
+            )
+
+    def test_balanced_prompts_hit_exact_16k_mean(self):
+        prompts = balanced_prompt_lengths(
+            target_mean_attended_history_tokens=16384,
+            batch=32,
+            measured_decode_tokens=1024,
+        )
+        self.assertEqual(prompts, [15872] * 16 + [15873] * 16)
+        self.assertEqual(sum(prompts) / len(prompts) + 511.5, 16384)
+
     def test_synchronized_batch_passes(self):
         report = validate_batch_observations(
             valid_rows(), batch=3, measured_decode_tokens=2
@@ -59,7 +88,6 @@ class BatchDoctorTests(unittest.TestCase):
             rows, batch=3, measured_decode_tokens=2
         )
         self.assertFalse(report["qc_pass"])
-
 
 if __name__ == "__main__":
     unittest.main()

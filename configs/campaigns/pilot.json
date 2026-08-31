@@ -6,12 +6,15 @@
     "model": "Qwen/Qwen2.5-7B-Instruct",
     "model_id": "qwen2p5-7b",
     "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "accelerator_class": "NVIDIA GH200 144GB HBM3e",
+    "measurement_profile": "gh200-scoped-nvml-v1",
     "weight_dtype": "bf16",
     "tensor_parallel_size": 1,
     "pipeline_parallel_size": 1,
-    "requested_api_output_tokens": 129,
+    "requested_api_output_tokens": 1025,
     "unmetered_bootstrap_tokens_per_request": 1,
-    "metered_decode_tokens_per_request": 128,
+    "metered_decode_tokens_per_request": 1024,
+    "prompt_length_policy": "balanced-exact-target-mean",
     "temperature": 0,
     "ignore_eos": true,
     "prefix_cache": false,
@@ -19,6 +22,9 @@
     "cpu_kv_offload": false,
     "swap": false,
     "power_limit_w": 700,
+    "primary_energy_scope": "gpu-board-nvml-scope-0-instantaneous-integral",
+    "secondary_energy_scope": "gh200-module-nvml-scope-1-and-counter",
+    "minimum_episode_decode_seconds": 5,
     "minimum_decode_seconds_per_repeat": 30,
     "repetitions": 3
   },
@@ -27,10 +33,10 @@
       "block_id": "pilot",
       "split": "pilot",
       "cells": [
-        {"cell_id": "p-a-l4096-b8-bf16", "context_tokens": 4096, "target_batch": 8, "kv_cache_dtype": "bf16"},
-        {"cell_id": "p-b-l4096-b8-fp8", "context_tokens": 4096, "target_batch": 8, "kv_cache_dtype": "fp8_e4m3"},
-        {"cell_id": "p-c-l16384-b32-bf16", "context_tokens": 16384, "target_batch": 32, "kv_cache_dtype": "bf16"},
-        {"cell_id": "p-d-l16384-b32-fp8", "context_tokens": 16384, "target_batch": 32, "kv_cache_dtype": "fp8_e4m3"}
+        {"cell_id": "p-a-l4096-b8-bf16", "target_mean_attended_history_tokens": 4096, "target_batch": 8, "kv_cache_dtype": "bf16"},
+        {"cell_id": "p-b-l4096-b8-fp8", "target_mean_attended_history_tokens": 4096, "target_batch": 8, "kv_cache_dtype": "fp8_e4m3"},
+        {"cell_id": "p-c-l16384-b32-bf16", "target_mean_attended_history_tokens": 16384, "target_batch": 32, "kv_cache_dtype": "bf16"},
+        {"cell_id": "p-d-l16384-b32-fp8", "target_mean_attended_history_tokens": 16384, "target_batch": 32, "kv_cache_dtype": "fp8_e4m3"}
       ]
     }
   ]

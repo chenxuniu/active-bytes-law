@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .accounting import summarize_trace
+from .batch_doctor import balanced_prompt_lengths
 
 
 REQUIRED_FIELDS = {
@@ -82,12 +83,26 @@ def validate_static_trace(
     rows: list[Mapping[str, Any]],
     *,
     expected_batch: int,
-    prompt_tokens: int,
+    prompt_tokens: int | None = None,
+    target_mean_attended_history_tokens: int | None = None,
     measured_decode_tokens: int = 128,
 ) -> dict[str, Any]:
     errors: list[str] = []
-    if expected_batch <= 0 or prompt_tokens < 0 or measured_decode_tokens <= 0:
-        raise ValueError("batch and measured tokens must be positive; prompt must be non-negative")
+    if expected_batch <= 0 or measured_decode_tokens <= 0:
+        raise ValueError("batch and measured tokens must be positive")
+    if (prompt_tokens is None) == (target_mean_attended_history_tokens is None):
+        raise ValueError("specify exactly one prompt or target-mean geometry")
+    if prompt_tokens is not None:
+        if prompt_tokens < 0:
+            raise ValueError("prompt must be non-negative")
+        prompt_lengths = [prompt_tokens] * expected_batch
+    else:
+        assert target_mean_attended_history_tokens is not None
+        prompt_lengths = balanced_prompt_lengths(
+            target_mean_attended_history_tokens=target_mean_attended_history_tokens,
+            batch=expected_batch,
+            measured_decode_tokens=measured_decode_tokens,
+        )
     if len(rows) != measured_decode_tokens:
         errors.append(
             f"expected {measured_decode_tokens} decode iterations, observed {len(rows)}"
@@ -97,6 +112,7 @@ def validate_static_trace(
 
     baseline: dict[str, Any] = {}
     expected_requests: set[str] | None = None
+    prompt_tokens_by_request: dict[str, int] | None = None
     previous_end: int | None = None
     for index, row in enumerate(rows):
         missing = sorted(REQUIRED_FIELDS.difference(row))
@@ -142,11 +158,23 @@ def validate_static_trace(
         if not isinstance(attended, Mapping) or set(attended) != active_set:
             errors.append(f"row {index}: attended-length keys do not match active requests")
         else:
-            expected_length = prompt_tokens + index
-            if any(value != expected_length for value in attended.values()):
-                errors.append(
-                    f"row {index}: canonical history length must be {expected_length} before KV write"
+            if prompt_tokens_by_request is None:
+                if sorted(attended.values()) != sorted(prompt_lengths):
+                    errors.append(
+                        "row 0: initial attended lengths do not match the preregistered balanced prompts"
+                    )
+                prompt_tokens_by_request = dict(attended)
+            else:
+                geometry_membership_matches = set(attended) == set(
+                    prompt_tokens_by_request
                 )
+                if geometry_membership_matches and any(
+                    value != prompt_tokens_by_request[request_id] + index
+                    for request_id, value in attended.items()
+                ):
+                    errors.append(
+                        f"row {index}: canonical history lengths do not match the preregistered prompts before KV write"
+                    )
         for field in ZERO_FIELDS:
             if row[field] != 0:
                 errors.append(f"row {index}: {field} must be zero in static identification")
@@ -166,7 +194,9 @@ def validate_static_trace(
         errors.append(f"trace accounting failed: {exc}")
     if summary:
         expected_useful = expected_batch * measured_decode_tokens
-        expected_lbar = prompt_tokens + (measured_decode_tokens - 1) / 2
+        expected_lbar = sum(prompt_lengths) / expected_batch + (
+            measured_decode_tokens - 1
+        ) / 2
         if summary["metered_useful_tokens"] != expected_useful:
             errors.append(
                 f"metered useful tokens are {summary['metered_useful_tokens']}, expected {expected_useful}"
@@ -186,6 +216,10 @@ def validate_static_trace(
         "metered_decode_tokens_per_request": measured_decode_tokens,
         "expected_batch": expected_batch,
         "prompt_tokens": prompt_tokens,
+        "prompt_tokens_by_request": prompt_tokens_by_request,
+        "target_mean_attended_history_tokens": (
+            target_mean_attended_history_tokens
+        ),
         **summary,
     }
 
@@ -212,7 +246,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--trace", required=True, type=Path)
     parser.add_argument("--batch", required=True, type=int)
-    parser.add_argument("--prompt-tokens", required=True, type=int)
+    geometry = parser.add_mutually_exclusive_group(required=True)
+    geometry.add_argument("--prompt-tokens", type=int)
+    geometry.add_argument("--target-mean-attended-history-tokens", type=int)
     parser.add_argument("--measured-decode-tokens", type=int, default=128)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args(argv)
@@ -220,6 +256,9 @@ def main(argv: list[str] | None = None) -> int:
         read_jsonl(args.trace),
         expected_batch=args.batch,
         prompt_tokens=args.prompt_tokens,
+        target_mean_attended_history_tokens=(
+            args.target_mean_attended_history_tokens
+        ),
         measured_decode_tokens=args.measured_decode_tokens,
     )
     if args.report:

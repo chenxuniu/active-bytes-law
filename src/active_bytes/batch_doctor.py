@@ -6,10 +6,39 @@ import argparse
 import importlib
 import json
 import time
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from .decode_doctor import _atomic_write_json, _normal_token_id
+
+
+def balanced_prompt_lengths(
+    *,
+    target_mean_attended_history_tokens: int,
+    batch: int,
+    measured_decode_tokens: int,
+) -> list[int]:
+    """Return integer prompt lengths whose token-weighted decode mean is exact."""
+    if (
+        target_mean_attended_history_tokens <= 0
+        or batch <= 0
+        or measured_decode_tokens <= 0
+    ):
+        raise ValueError("target mean, batch, and decode counts must be positive")
+    mean_prompt = Fraction(target_mean_attended_history_tokens) - Fraction(
+        measured_decode_tokens - 1, 2
+    )
+    total_prompt_tokens = mean_prompt * batch
+    if total_prompt_tokens.denominator != 1:
+        raise ValueError(
+            "batch cannot realize the target mean with integer prompt lengths"
+        )
+    total = total_prompt_tokens.numerator
+    floor_prompt, longer_count = divmod(total, batch)
+    if floor_prompt <= 0:
+        raise ValueError("target mean implies a non-positive prompt length")
+    return [floor_prompt] * (batch - longer_count) + [floor_prompt + 1] * longer_count
 
 
 def validate_batch_observations(
@@ -77,7 +106,7 @@ def _observe_step(
     step_id: int,
     phase: str,
     previous_counts: Mapping[str, int],
-    prompt_tokens: int,
+    prompt_tokens_by_request: Mapping[str, int],
 ) -> dict[str, Any]:
     start_ns = time.monotonic_ns()
     outputs = engine.step()
@@ -100,8 +129,13 @@ def _observe_step(
         "cumulative_output_tokens_by_request": counts,
         "useful_tokens_by_request": useful,
         "finished_by_request": finished,
-        "expected_attended_history_tokens": (
-            None if step_id == 0 else prompt_tokens + step_id - 1
+        "expected_attended_history_tokens_by_request": (
+            None
+            if step_id == 0
+            else {
+                request_id: prompt_tokens + step_id - 1
+                for request_id, prompt_tokens in prompt_tokens_by_request.items()
+            }
         ),
     }
 
@@ -110,14 +144,28 @@ def run_batch_doctor(
     *,
     model: str,
     model_revision: str,
-    prompt_tokens: int,
+    prompt_tokens: int | None,
     batch: int,
     measured_decode_tokens: int,
     gpu_memory_utilization: float,
     seed: int,
+    target_mean_attended_history_tokens: int | None = None,
 ) -> dict[str, Any]:
-    if prompt_tokens <= 0 or batch <= 0 or measured_decode_tokens <= 0:
-        raise ValueError("prompt, batch, and decode counts must be positive")
+    if batch <= 0 or measured_decode_tokens <= 0:
+        raise ValueError("batch and decode counts must be positive")
+    if (prompt_tokens is None) == (target_mean_attended_history_tokens is None):
+        raise ValueError("specify exactly one prompt or target-mean geometry")
+    if prompt_tokens is not None:
+        if prompt_tokens <= 0:
+            raise ValueError("prompt tokens must be positive")
+        prompt_lengths = [prompt_tokens] * batch
+    else:
+        assert target_mean_attended_history_tokens is not None
+        prompt_lengths = balanced_prompt_lengths(
+            target_mean_attended_history_tokens=target_mean_attended_history_tokens,
+            batch=batch,
+            measured_decode_tokens=measured_decode_tokens,
+        )
     if not 0 < gpu_memory_utilization < 1:
         raise ValueError("gpu_memory_utilization must be between zero and one")
     vllm = importlib.import_module("vllm")
@@ -128,8 +176,8 @@ def run_batch_doctor(
         raise RuntimeError("batch doctor requires the V0 LLMEngine")
 
     total_output_tokens = 1 + measured_decode_tokens
-    max_model_len = prompt_tokens + total_output_tokens + 8
-    max_num_batched_tokens = batch * prompt_tokens
+    max_model_len = max(prompt_lengths) + total_output_tokens + 8
+    max_num_batched_tokens = sum(prompt_lengths)
     engine = LLMEngine.from_engine_args(
         EngineArgs(
             model=model,
@@ -155,7 +203,6 @@ def run_batch_doctor(
         )
     )
     prompt_token_id = _normal_token_id(engine.get_tokenizer())
-    prompt = {"prompt_token_ids": [prompt_token_id] * prompt_tokens}
     params = SamplingParams(
         n=1,
         temperature=0.0,
@@ -168,7 +215,9 @@ def run_batch_doctor(
         detokenize=False,
     )
     request_ids = [f"batch-doctor-{index}" for index in range(batch)]
-    for request_id in request_ids:
+    prompt_tokens_by_request = dict(zip(request_ids, prompt_lengths))
+    for request_id, request_prompt_tokens in prompt_tokens_by_request.items():
+        prompt = {"prompt_token_ids": [prompt_token_id] * request_prompt_tokens}
         engine.add_request(request_id, prompt, params)
 
     observations: list[dict[str, Any]] = []
@@ -178,7 +227,7 @@ def run_batch_doctor(
         step_id=0,
         phase="bootstrap-unmetered",
         previous_counts=previous_counts,
-        prompt_tokens=prompt_tokens,
+        prompt_tokens_by_request=prompt_tokens_by_request,
     )
     observations.append(bootstrap)
     counts = bootstrap["cumulative_output_tokens_by_request"]
@@ -193,7 +242,7 @@ def run_batch_doctor(
                 step_id=measured_index + 1,
                 phase="decode-metered",
                 previous_counts=previous_counts,
-                prompt_tokens=prompt_tokens,
+                prompt_tokens_by_request=prompt_tokens_by_request,
             )
             observations.append(row)
             previous_counts = dict(row["cumulative_output_tokens_by_request"])
@@ -230,14 +279,20 @@ def run_batch_doctor(
             "max_num_seqs": batch,
         },
         "geometry": {
-            "prompt_tokens": prompt_tokens,
+            "prompt_tokens": (
+                prompt_lengths[0] if len(set(prompt_lengths)) == 1 else None
+            ),
+            "prompt_tokens_by_request": prompt_tokens_by_request,
+            "target_mean_attended_history_tokens": (
+                target_mean_attended_history_tokens
+            ),
             "batch": batch,
             "bootstrap_tokens_per_request": 1,
             "metered_decode_tokens_per_request": measured_decode_tokens,
             "metered_useful_tokens": batch * measured_decode_tokens,
             "decode_seconds": decode_seconds,
             "mean_attended_history_tokens": (
-                prompt_tokens + (measured_decode_tokens - 1) / 2
+                sum(prompt_lengths) / batch + (measured_decode_tokens - 1) / 2
             ),
         },
         "observations": observations,
@@ -250,7 +305,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", required=True)
     parser.add_argument("--model-revision", required=True)
-    parser.add_argument("--prompt-tokens", type=int, required=True)
+    geometry = parser.add_mutually_exclusive_group(required=True)
+    geometry.add_argument("--prompt-tokens", type=int)
+    geometry.add_argument("--target-mean-attended-history-tokens", type=int)
     parser.add_argument("--batch", type=int, required=True)
     parser.add_argument("--measured-decode-tokens", type=int, default=8)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.8)
@@ -265,6 +322,9 @@ def main(argv: list[str] | None = None) -> int:
         measured_decode_tokens=args.measured_decode_tokens,
         gpu_memory_utilization=args.gpu_memory_utilization,
         seed=args.seed,
+        target_mean_attended_history_tokens=(
+            args.target_mean_attended_history_tokens
+        ),
     )
     _atomic_write_json(args.output_json, report)
     summary = {

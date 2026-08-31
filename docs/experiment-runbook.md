@@ -1,9 +1,10 @@
-# H100 experiment runbook
+# Experiment runbook
 
 This is the stop/go execution contract for `active-bytes-v1`. It assumes one
-exclusive, non-MIG H100 80 GB node with administrative access. One node is
-enough for the P0 study: budget 50--65 H100 hours and reserve 80 hours for QC
-reruns. Pilot, primary energy, and profiler runs are separate data domains.
+exclusive, non-MIG accelerator with administrative access. The acceptance
+pilot is frozen for one GH200 144 GB HBM3e GPU/module pair; H100 is a later
+cross-hardware confirmation domain. Pilot, primary energy, and profiler runs
+are separate data domains and never share repeats.
 
 ## 0. Clone, test, and isolate private output
 
@@ -51,38 +52,41 @@ patch, with this state machine:
 LOAD -> ADD_B_REQUESTS -> PREFILL_AND_BOOTSTRAP -> PARK_EACH_REQUEST
      -> ALL_B_PARKED -> CUDA_SYNC -> DECODE_READY
      -> HOST_READS_ENERGY_START -> GO -> ACTIVEBYTES_DECODE_NVTX
-     -> EXACTLY_128_PURE_DECODE_STEPS -> CUDA_SYNC -> DECODE_DONE
+     -> EXACTLY_1024_PURE_DECODE_STEPS -> CUDA_SYNC -> DECODE_DONE
      -> HOST_READS_ENERGY_END -> ACK -> ATOMIC_ARTIFACT_WRITE
 ```
 
 For each request set:
 
 ```text
-requested_api_output_tokens              = 129
+requested_api_output_tokens              = 1025
 unmetered_bootstrap_tokens_per_request   = 1
-metered_decode_tokens_per_request        = 128
+metered_decode_tokens_per_request        = 1024
 ignore_eos                               = true
 temperature                              = 0
 ```
 
-The first output is sampled by prefill and is not metered. It seeds 128 later
+The first output is sampled by prefill and is not metered. It seeds 1,024 later
 pure-decode steps. Each request must be parked immediately after its bootstrap
 token. Open the common gate only when all `B` requests have exactly one output;
 no request may start its second output early. This matters when long prompts
 are prefetched in chunks or waves.
 
 The canonical context variable is historical length **before** the current
-token's KV write. The 128 values for an input of length `I` are
-`I, I+1, ..., I+127`; their mean is `I+63.5`. If a runtime field includes the
-current query token, retain it as `runtime_seq_len_raw` and store
+token's KV write. The 1,024 values for a request with initial prompt `I_r` are
+`I_r, I_r+1, ..., I_r+1023`; their mean is `I_r+511.5`. A balanced mix of the
+two adjacent integer prompt lengths realizes an integer target mean context
+exactly. If a runtime field includes the current query token, retain it as
+`runtime_seq_len_raw` and store
 `attended_history_tokens = runtime_seq_len_raw - 1`. Verify this conversion with
 a one-request token-by-token doctor test before the pilot.
 
 Required integration checks:
 
 1. markers have a CUDA synchronization on both boundaries;
-2. the host reads cumulative DCGM field 156 after `DECODE_READY` and before
-   `GO`, then after `DECODE_DONE` and before `ACK`;
+2. the host applies the platform-specific energy contract at both boundaries;
+   on GH200, scope-0 instantaneous integration is primary, while the scope-1
+   module counter is a secondary agreement check;
 3. an NVTX push/pop range named `activebytes_decode` covers only metered steps;
 4. every step emits the fields in `schemas/iteration-trace.schema.json`;
 5. trace, energy, and manifest files use atomic rename and SHA-256;
@@ -142,19 +146,21 @@ client timestamps, or subtraction of a separately timed prefill do not satisfy
 the boundary contract.
 
 Before the pilot, run the synchronized batch doctor at the first pilot geometry
-(`I=4096`, `B=8`). It disables chunked prefill and admits exactly
-`B*I=32768` prompt tokens in the common bootstrap step. The gate passes only if
+(`L_bar=4096`, `B=8`). It disables chunked prefill and uses four 3,584-token
+and four 3,585-token prompts. All 28,676 prompt tokens must be admitted in the
+common bootstrap step. The gate passes only if
 all eight requests appear with exactly one cumulative output token after that
 step, remain in identical membership, add one useful token per later engine
 step, and finish together. A partial bootstrap is a hard stop; do not infer a
 barrier from client completion times.
 
-Before freezing the production episode length, extend this non-paper doctor to
-512 measured decode steps and record its decode-only duration. Adopt 512 only
-if the first pilot geometry naturally exceeds the validated 5-second GH200
-counter interval; otherwise retain 128 for geometry and use instantaneous-power
-integration as the primary episode meter. This decision is made before opening
-pilot energy outcomes.
+The pre-outcome duration doctor found that 512 measured steps lasted 3.505 s,
+below the validated 5-second GH200 counter interval. A 1,024-step doctor with
+uniform 3,584-token prompts lasted 7.118 s, passed all 1,025 synchronized
+engine steps, and had `L_bar=4095.5`. The production episode therefore uses
+1,024 measured steps and balanced prompt lengths to make `L_bar=4096` exactly.
+Repeat the balanced-geometry doctor once before freezing the campaign lock;
+this remains a non-paper measurement.
 
 ## 3. Freeze the four-cell pilot
 
@@ -167,15 +173,15 @@ sha256sum results/manifests/pilot.lock.json
 The pilot uses Qwen2.5-7B, BF16 weights, TP=PP=1, fixed backend and graph mode,
 no prefix cache, speculation, offload, or swap:
 
-| Cell | Actual context | Target batch | KV dtype | Repeats |
-|---|---:|---:|---|---:|
-| P-A | 4,096 | 8 | BF16 | 3 |
-| P-B | 4,096 | 8 | FP8 | 3 |
-| P-C | 16,384 | 32 | BF16 | 3 |
-| P-D | 16,384 | 32 | FP8 | 3 |
+| Cell | Target mean history | Initial prompt lengths | Batch | KV dtype | Repeats |
+|---|---:|---:|---:|---|---:|
+| P-A | 4,096 | 3,584/3,585 | 8 | BF16 | 3 |
+| P-B | 4,096 | 3,584/3,585 | 8 | FP8 | 3 |
+| P-C | 16,384 | 15,872/15,873 | 32 | BF16 | 3 |
+| P-D | 16,384 | 15,872/15,873 | 32 | FP8 | 3 |
 
 Follow the order in the lock file. A repetition may contain multiple
-independent 128-step episodes. Sum only decode-marker time, energy, and useful
+independent 1,024-step episodes. Sum only decode-marker time, energy, and useful
 tokens until that repetition contains at least 30 seconds of decode. Never add
 prefill, restart, or between-episode idle to reach the duration threshold.
 
@@ -185,8 +191,8 @@ For each trace:
 python3 scripts/validate_trace.py \
   --trace path/to/trace.jsonl \
   --batch TARGET_BATCH \
-  --prompt-tokens ACTUAL_CONTEXT \
-  --measured-decode-tokens 128 \
+  --target-mean-attended-history-tokens TARGET_MEAN_HISTORY \
+  --measured-decode-tokens 1024 \
   --report path/to/trace.qc.json
 ```
 
@@ -202,10 +208,10 @@ python3 scripts/summarize_energy.py \
 
 The pilot passes only if every condition holds:
 
-- each episode has exactly `128*B` metered useful tokens;
+- each episode has exactly `1024*B` metered useful tokens;
 - conventional decode has one useful accepted token per active request per
   step and zero speculative rejection;
-- `B_eff == B` and `L_bar == I+63.5` at accounting precision;
+- `B_eff == B` and `L_bar` equals the preregistered target at accounting precision;
 - no late entry/exit, preemption, swap, offload, recomputation, or prefix reuse;
 - backend, graph mode, dtype, runtime weight inventory, and KV accounting are
   stable across matched repeats;
