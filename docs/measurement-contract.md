@@ -90,6 +90,10 @@ counter by 5.65%, while instantaneous module-power integration differed by
 loaded-idle baselines are boundary-specific; never subtract module idle from
 GPU-board energy or vice versa.
 
+The scoped collector's own QC therefore compares the module counter only with
+the module instantaneous-power integral. Its one-second average-power error is
+reported separately and cannot fail an otherwise valid formal trace.
+
 ## Profiler separation
 
 NCU runs share cell settings and the `activebytes_decode` NVTX range but have

@@ -112,11 +112,14 @@ def summarize_scoped_samples(
             (right[0] - left[0]) / 1e9
             for left, right in zip(counter_changes, counter_changes[1:])
         ]
-        module_counter_relative_error = abs(module_average_joules - counter_joules) / max(
-            module_average_joules, counter_joules, 1e-12
+        module_average_counter_relative_error = abs(
+            module_average_joules - counter_joules
+        ) / max(module_average_joules, counter_joules, 1e-12)
+        module_counter_relative_error = abs(module_instant_joules - counter_joules) / max(
+            module_instant_joules, counter_joules, 1e-12
         )
-        cross_scope_difference = abs(gpu_average_joules - counter_joules) / max(
-            gpu_average_joules, counter_joules, 1e-12
+        cross_scope_difference = abs(gpu_instant_joules - counter_joules) / max(
+            gpu_instant_joules, counter_joules, 1e-12
         )
         gap_pass = maximum_gap <= maximum_gap_seconds
         counter_pass = module_counter_relative_error <= module_counter_error_limit
@@ -158,6 +161,10 @@ def summarize_scoped_samples(
                 else None
             ),
             "module_counter_relative_error": module_counter_relative_error,
+            "module_average_counter_relative_error": (
+                module_average_counter_relative_error
+            ),
+            "module_counter_comparison_power_field": "module_instant_power_w",
             "module_counter_qc_pass": counter_pass,
             "cross_scope_difference": cross_scope_difference,
             "qc_pass": device_pass,

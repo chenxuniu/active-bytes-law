@@ -93,13 +93,15 @@ def _scheduler_snapshot(engine: Any) -> dict[str, Any]:
     for index, scheduler in enumerate(schedulers):
         preemptions = getattr(scheduler, "num_cumulative_preemption", None)
         swapped = getattr(scheduler, "swapped", None)
+        try:
+            swapped_count = len(swapped) if swapped is not None else None
+        except TypeError:
+            swapped_count = None
         rows.append(
             {
                 "scheduler_index": index,
                 "cumulative_preemptions": preemptions,
-                "swapped_request_count": (
-                    len(swapped) if isinstance(swapped, (list, tuple)) else None
-                ),
+                "swapped_request_count": swapped_count,
             }
         )
     observable = bool(rows) and all(

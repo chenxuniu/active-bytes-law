@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections import deque
 import sys
 import unittest
 
@@ -32,6 +33,20 @@ def valid_observations(request_ids, measured=2):
 
 
 class PilotRepeatTests(unittest.TestCase):
+    def test_scheduler_snapshot_accepts_deque_swap_queue(self):
+        class Scheduler:
+            num_cumulative_preemption = 0
+            swapped = deque()
+
+        class Engine:
+            scheduler = [Scheduler()]
+
+        from active_bytes.pilot_repeat import _scheduler_snapshot
+
+        report = _scheduler_snapshot(Engine())
+        self.assertTrue(report["observable"])
+        self.assertEqual(report["schedulers"][0]["swapped_request_count"], 0)
+
     def test_valid_synchronized_episode_passes(self):
         request_ids = ["r0", "r1"]
         report = validate_episode_observations(

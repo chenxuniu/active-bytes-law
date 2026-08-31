@@ -48,6 +48,20 @@ class NvmlScopedTests(unittest.TestCase):
         self.assertFalse(report["qc_pass"])
         self.assertFalse(report["devices"]["0"]["module_counter_qc_pass"])
 
+    def test_lagging_average_is_diagnostic_not_counter_gate(self):
+        rows = constant_samples(gpu_watts=100.0, module_watts=150.0)
+        for row in rows:
+            row["module_average_power_w"] = 120.0
+        report = summarize_scoped_samples(rows, maximum_gap_seconds=1.1)
+        device = report["devices"]["0"]
+        self.assertTrue(report["qc_pass"])
+        self.assertAlmostEqual(device["module_counter_relative_error"], 0.0)
+        self.assertGreater(device["module_average_counter_relative_error"], 0.1)
+        self.assertEqual(
+            device["module_counter_comparison_power_field"],
+            "module_instant_power_w",
+        )
+
     def test_sampling_gap_fails_qc(self):
         report = summarize_scoped_samples(
             constant_samples(gpu_watts=100.0, module_watts=150.0)
