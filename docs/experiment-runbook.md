@@ -141,6 +141,14 @@ Do not continue until the doctor demonstrates a real bootstrap barrier. TTFT,
 client timestamps, or subtraction of a separately timed prefill do not satisfy
 the boundary contract.
 
+Before the pilot, run the synchronized batch doctor at the first pilot geometry
+(`I=4096`, `B=8`). It disables chunked prefill and admits exactly
+`B*I=32768` prompt tokens in the common bootstrap step. The gate passes only if
+all eight requests appear with exactly one cumulative output token after that
+step, remain in identical membership, add one useful token per later engine
+step, and finish together. A partial bootstrap is a hard stop; do not infer a
+barrier from client completion times.
+
 ## 3. Freeze the four-cell pilot
 
 ```bash
