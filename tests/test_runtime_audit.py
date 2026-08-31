@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from active_bytes.runtime_audit import (  # noqa: E402
     _known_cache_roots,
+    resolve_runtime_contract,
     validate_cache_dtype_contract,
 )
 
@@ -43,6 +44,32 @@ class RuntimeAuditTests(unittest.TestCase):
     def test_empty_cache_contract_fails(self):
         report = validate_cache_dtype_contract([], declared_dtype="bf16")
         self.assertFalse(report["qc_pass"])
+
+    def test_frozen_runtime_contract_uses_locked_values(self):
+        contract = resolve_runtime_contract(
+            {"attention_backend": "FLASH_ATTN", "kv_cache_dtype": "bf16"}
+        )
+        self.assertFalse(contract["compatibility_mode"])
+        self.assertEqual(contract["attention_backend"], "FLASH_ATTN")
+        self.assertEqual(contract["requested_kv_cache_dtype"], "auto")
+
+    def test_compatibility_runtime_contract_requires_matched_overrides(self):
+        parameters = {
+            "attention_backend": "FLASH_ATTN",
+            "kv_cache_dtype": "fp8_e4m3",
+        }
+        with self.assertRaises(ValueError):
+            resolve_runtime_contract(
+                parameters, compatibility_attention_backend="FLASHINFER"
+            )
+        contract = resolve_runtime_contract(
+            parameters,
+            compatibility_attention_backend="FLASHINFER",
+            compatibility_kv_cache_dtype="fp8_e4m3",
+        )
+        self.assertTrue(contract["compatibility_mode"])
+        self.assertEqual(contract["attention_backend"], "FLASHINFER")
+        self.assertEqual(contract["requested_kv_cache_dtype"], "fp8_e4m3")
 
 
 if __name__ == "__main__":

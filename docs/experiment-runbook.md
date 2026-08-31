@@ -182,6 +182,44 @@ no prefix cache, speculation, offload, or swap:
 | P-C | 16,384 | 15,872/15,873 | 32 | BF16 | 3 |
 | P-D | 16,384 | 15,872/15,873 | 32 | FP8 | 3 |
 
+### Backend-censored cells and compatibility probes
+
+The frozen pilot pins `FLASH_ATTN`.  If that backend rejects a locked KV
+dtype before `ENGINE_READY`, preserve the cell as backend-censored.  Do not
+change the backend under the same run ID and do not treat the failed startup as
+an energy observation.
+
+Before preregistering any replacement pair, use the runtime audit's
+compatibility mode.  It borrows only the frozen model and geometry, labels the
+result `non_paper_measurement`, sets `frozen_run_execution=false`, and cannot be
+mistaken for execution of the source run.  Run the two probes sequentially on
+the same idle GPU:
+
+```bash
+python3 scripts/run_runtime_audit.py \
+  --campaign-lock results/manifests/pilot.lock.json \
+  --run-id ab1-pilot-p-a-l4096-b8-bf16-r01 \
+  --compatibility-attention-backend FLASHINFER \
+  --compatibility-kv-cache-dtype bf16 \
+  --gpu-memory-utilization 0.5 \
+  --output-json path/to/flashinfer-bf16-compatibility.json
+
+python3 scripts/run_runtime_audit.py \
+  --campaign-lock results/manifests/pilot.lock.json \
+  --run-id ab1-pilot-p-b-l4096-b8-fp8-r01 \
+  --compatibility-attention-backend FLASHINFER \
+  --compatibility-kv-cache-dtype fp8_e4m3 \
+  --gpu-memory-utilization 0.5 \
+  --output-json path/to/flashinfer-fp8-compatibility.json
+```
+
+Both probes must resolve the requested backend and cache tensor dtype.  A pass
+authorizes drafting and freezing a new backend-matched BF16/FP8 addendum; it
+does not authorize opening energy outcomes.  Within every causal dtype
+comparison, backend, model revision, geometry, graph mode, container, driver,
+and meter must remain identical.  Record the KV scaling policy explicitly
+before freezing that addendum.
+
 Follow the order in the lock file. A repetition may contain multiple
 independent 1,024-step episodes. Sum only decode-marker time, energy, and useful
 tokens until that repetition contains at least 30 seconds of decode. Never add
