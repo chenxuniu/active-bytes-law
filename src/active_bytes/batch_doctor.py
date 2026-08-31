@@ -203,6 +203,12 @@ def run_batch_doctor(
         batch=batch,
         measured_decode_tokens=measured_decode_tokens,
     )
+    decode_seconds = None
+    if len(observations) >= 2:
+        decode_seconds = (
+            observations[-1]["monotonic_end_ns"]
+            - observations[1]["monotonic_start_ns"]
+        ) / 1e9
     return {
         "schema_version": 1,
         "measurement": "vllm-batch-barrier-doctor",
@@ -229,6 +235,10 @@ def run_batch_doctor(
             "bootstrap_tokens_per_request": 1,
             "metered_decode_tokens_per_request": measured_decode_tokens,
             "metered_useful_tokens": batch * measured_decode_tokens,
+            "decode_seconds": decode_seconds,
+            "mean_attended_history_tokens": (
+                prompt_tokens + (measured_decode_tokens - 1) / 2
+            ),
         },
         "observations": observations,
         "validation": validation,

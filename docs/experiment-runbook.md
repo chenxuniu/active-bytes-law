@@ -149,6 +149,13 @@ step, remain in identical membership, add one useful token per later engine
 step, and finish together. A partial bootstrap is a hard stop; do not infer a
 barrier from client completion times.
 
+Before freezing the production episode length, extend this non-paper doctor to
+512 measured decode steps and record its decode-only duration. Adopt 512 only
+if the first pilot geometry naturally exceeds the validated 5-second GH200
+counter interval; otherwise retain 128 for geometry and use instantaneous-power
+integration as the primary episode meter. This decision is made before opening
+pilot energy outcomes.
+
 ## 3. Freeze the four-cell pilot
 
 ```bash
