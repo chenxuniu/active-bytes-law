@@ -12,6 +12,7 @@ import platform
 
 PACKAGES = (
     "accelerate",
+    "apex",
     "compressed-tensors",
     "datasets",
     "llmcompressor",
@@ -74,6 +75,7 @@ def main() -> int:
         and report["packages"]["compressed-tensors"] == "0.10.2"
         and report["packages"]["transformers"] == "4.52.4"
         and report["packages"]["vllm"] is None
+        and report["packages"]["apex"] is None
     )
     report["qc_pass"] = required and all("error" not in row for row in report["api"])
     print(json.dumps(report, indent=2, sort_keys=True))
