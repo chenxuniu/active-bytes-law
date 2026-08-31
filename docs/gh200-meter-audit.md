@@ -34,6 +34,11 @@ counter endpoints: zero delta means "not yet observed," not zero physical
 energy. Extend or concatenate the strictly decode-only interval so the counter
 advances repeatedly.
 
+On the validated stack, a 20 ms probe observed a median counter update interval
+of approximately 100 ms and median quanta near 15--16 J. Treat 5 seconds as the
+minimum counter-endpoint interval for the 2% gate and retain the preregistered
+30-second aggregate as the preferred measurement duration.
+
 For GH200 studies, report both outcomes without mixing baselines:
 
 - primary mechanism outcome: GPU-board joules per useful decode token, from

@@ -125,6 +125,12 @@ The Qwen study model is frozen at revision
 `a09a35458c702b33eeacc393d103063234e8bc28`. Pass that value with
 `--model-revision`; pass `--runtime-mode graph` for the study-mode doctor.
 
+After the eight-step boundary doctor, run a non-paper loaded-meter audit with
+enough decode steps to exceed `--minimum-counter-duration-seconds 5`. Use
+`--print-summary-only` to keep the complete step trace in the private JSON
+without flooding the terminal. This audit characterizes counter observability;
+it does not enter coefficient fitting.
+
 Do not continue until the doctor demonstrates a real bootstrap barrier. TTFT,
 client timestamps, or subtraction of a separately timed prefill do not satisfy
 the boundary contract.

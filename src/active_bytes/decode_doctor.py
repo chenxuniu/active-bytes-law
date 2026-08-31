@@ -104,6 +104,7 @@ def run_vllm_doctor(
     gpu_memory_utilization: float,
     seed: int,
     enforce_eager: bool,
+    minimum_counter_duration_seconds: float,
 ) -> dict[str, Any]:
     """Execute one bootstrap step followed by exact pure-decode engine steps."""
 
@@ -111,6 +112,8 @@ def run_vllm_doctor(
         raise ValueError("prompt and measured decode token counts must be positive")
     if not 0 < gpu_memory_utilization < 1:
         raise ValueError("gpu_memory_utilization must be between zero and one")
+    if minimum_counter_duration_seconds < 0:
+        raise ValueError("minimum counter duration cannot be negative")
 
     torch = importlib.import_module("torch")
     pynvml = importlib.import_module("pynvml")
@@ -231,6 +234,8 @@ def run_vllm_doctor(
         bootstrap_tokens=bootstrap_tokens,
         measured_decode_tokens=measured_decode_tokens,
     )
+    token_boundary_qc_pass = validation["qc_pass"]
+    decode_seconds = (decode_done_ns - go_ns) / 1e9
     boundary_reasons: list[str] = []
     ordered = (
         decode_ready_ns
@@ -248,13 +253,17 @@ def run_vllm_doctor(
             "cumulative energy counter did not advance; the interval is below "
             "the validated counter-observation duration"
         )
+    if decode_seconds < minimum_counter_duration_seconds:
+        boundary_reasons.append(
+            f"decode interval {decode_seconds:.6f}s is below required counter "
+            f"duration {minimum_counter_duration_seconds:.6f}s"
+        )
     if any(row["useful_tokens_this_step"] != 1 for row in observations[1:]):
         boundary_reasons.append("a metered step did not produce exactly one useful token")
 
     validation["qc_reasons"].extend(boundary_reasons)
     validation["qc_pass"] = validation["qc_pass"] and not boundary_reasons
     module_energy_joules = (counter_end_mj - counter_start_mj) / 1000.0
-    decode_seconds = (decode_done_ns - go_ns) / 1e9
     return {
         "schema_version": 1,
         "measurement": "vllm-decode-boundary-doctor",
@@ -293,18 +302,14 @@ def run_vllm_doctor(
             "counter_end_mj": counter_end_mj,
             "module_energy_joules": module_energy_joules,
             "decode_seconds": decode_seconds,
+            "minimum_counter_duration_seconds": minimum_counter_duration_seconds,
             "module_joules_per_token_non_paper": (
                 module_energy_joules / measured_decode_tokens
             ),
         },
         "observations": observations,
         "validation": validation,
-        "token_boundary_qc_pass": not validation["qc_reasons"] or (
-            len(validation["qc_reasons"]) == 1
-            and validation["qc_reasons"][0].startswith(
-                "cumulative energy counter did not advance"
-            )
-        ),
+        "token_boundary_qc_pass": token_boundary_qc_pass,
         "energy_counter_observed": counter_end_mj > counter_start_mj,
         "qc_pass": validation["qc_pass"],
     }
@@ -321,6 +326,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--runtime-mode", choices=("eager", "graph"), default="eager"
     )
+    parser.add_argument("--minimum-counter-duration-seconds", type=float, default=0.0)
+    parser.add_argument("--print-summary-only", action="store_true")
     parser.add_argument("--output-json", required=True, type=Path)
     args = parser.parse_args(argv)
     report = run_vllm_doctor(
@@ -331,9 +338,22 @@ def main(argv: list[str] | None = None) -> int:
         gpu_memory_utilization=args.gpu_memory_utilization,
         seed=args.seed,
         enforce_eager=args.runtime_mode == "eager",
+        minimum_counter_duration_seconds=args.minimum_counter_duration_seconds,
     )
     _atomic_write_json(args.output_json, report)
-    print(json.dumps(report, indent=2, sort_keys=True))
+    printed = report
+    if args.print_summary_only:
+        printed = {
+            "qc_pass": report["qc_pass"],
+            "token_boundary_qc_pass": report["token_boundary_qc_pass"],
+            "energy_counter_observed": report["energy_counter_observed"],
+            "runtime": report["runtime"],
+            "geometry": report["geometry"],
+            "energy": report["energy"],
+            "qc_reasons": report["validation"]["qc_reasons"],
+            "output_json": str(args.output_json),
+        }
+    print(json.dumps(printed, indent=2, sort_keys=True))
     return 0 if report["qc_pass"] else 2
 
 
