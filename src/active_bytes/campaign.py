@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 
-ALGORITHM_VERSION = "active-bytes-campaign-v1"
+ALGORITHM_VERSION = "active-bytes-campaign-v2"
 ALLOWED_SPLITS = {
     "pilot",
     "coefficient-fit",
@@ -124,9 +124,12 @@ def expand_campaign(config: Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(seed, bool) or not isinstance(seed, int):
         raise ValueError("seed must be an integer")
     defaults = config.get("defaults", {})
+    randomize_cell_order = config.get("randomize_cell_order", True)
     blocks = config.get("blocks")
     if not isinstance(defaults, Mapping):
         raise ValueError("defaults must be an object")
+    if not isinstance(randomize_cell_order, bool):
+        raise ValueError("randomize_cell_order must be a boolean")
     if not isinstance(blocks, list) or not blocks:
         raise ValueError("blocks must be a non-empty array")
 
@@ -153,7 +156,8 @@ def expand_campaign(config: Mapping[str, Any]) -> dict[str, Any]:
         seen_signatures[condition_signature] = cell["split"]
 
     base = list(cells)
-    random.Random(seed).shuffle(base)
+    if randomize_cell_order:
+        random.Random(seed).shuffle(base)
     maximum_repeats = max(cell["repetitions"] for cell in cells)
     run_order: list[dict[str, Any]] = []
     order = 0
@@ -185,6 +189,9 @@ def expand_campaign(config: Mapping[str, Any]) -> dict[str, Any]:
         "algorithm_version": ALGORITHM_VERSION,
         "campaign_id": campaign_id,
         "seed": seed,
+        "cell_order_policy": (
+            "seeded-shuffle" if randomize_cell_order else "declared-order-with-repeat-rotation"
+        ),
         "source_sha256": sha256_json(config),
         "cell_count": len(cells),
         "run_count": len(run_order),

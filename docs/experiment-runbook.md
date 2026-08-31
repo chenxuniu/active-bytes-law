@@ -159,8 +159,10 @@ below the validated 5-second GH200 counter interval. A 1,024-step doctor with
 uniform 3,584-token prompts lasted 7.118 s, passed all 1,025 synchronized
 engine steps, and had `L_bar=4095.5`. The production episode therefore uses
 1,024 measured steps and balanced prompt lengths to make `L_bar=4096` exactly.
-Repeat the balanced-geometry doctor once before freezing the campaign lock;
-this remains a non-paper measurement.
+The final balanced doctor then passed all 1,025 steps in 7.183 s with exactly
+four 3,584-token and four 3,585-token prompts and `L_bar=4096.0`. Its private
+artifact SHA-256 is frozen in the pilot configuration; it remains a non-paper
+measurement.
 
 ## 3. Freeze the four-cell pilot
 

@@ -40,6 +40,28 @@ class CampaignTests(unittest.TestCase):
         two = json.dumps(expand_campaign(config), sort_keys=True, separators=(",", ":"))
         self.assertEqual(one, two)
 
+    def test_pilot_declared_order_is_rotated_across_repeats(self):
+        lock = expand_campaign(self.load("pilot.json"))
+        cells = [run["cell_id"] for run in lock["run_order"]]
+        self.assertEqual(
+            cells[:4],
+            [
+                "p-a-l4096-b8-bf16",
+                "p-b-l4096-b8-fp8",
+                "p-c-l16384-b32-bf16",
+                "p-d-l16384-b32-fp8",
+            ],
+        )
+        self.assertEqual(
+            cells[4:8],
+            [
+                "p-b-l4096-b8-fp8",
+                "p-c-l16384-b32-bf16",
+                "p-d-l16384-b32-fp8",
+                "p-a-l4096-b8-bf16",
+            ],
+        )
+
     def test_condition_cannot_leak_across_splits(self):
         config = self.load("pilot.json")
         copied = deepcopy(config["blocks"][0]["cells"][0])
