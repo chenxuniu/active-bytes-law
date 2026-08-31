@@ -116,6 +116,11 @@ that does not produce exactly one bootstrap token, any metered step that does
 not add exactly one cumulative output token, early/late completion, timestamp
 disorder, or a decreasing cumulative-energy counter.
 
+Token-boundary validity and energy-counter observability are separate gates.
+The top-level doctor fails if its cumulative counter does not advance, even
+when the exact one-token-per-step trace passes. Do not interpret a zero delta
+from a sub-update-period doctor as zero energy.
+
 The Qwen study model is frozen at revision
 `a09a35458c702b33eeacc393d103063234e8bc28`. Pass that value with
 `--model-revision`; pass `--runtime-mode graph` for the study-mode doctor.

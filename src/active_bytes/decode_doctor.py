@@ -243,6 +243,11 @@ def run_vllm_doctor(
         boundary_reasons.append("decode/counter boundary timestamps are out of order")
     if counter_end_mj < counter_start_mj:
         boundary_reasons.append("cumulative energy counter decreased")
+    elif counter_end_mj == counter_start_mj:
+        boundary_reasons.append(
+            "cumulative energy counter did not advance; the interval is below "
+            "the validated counter-observation duration"
+        )
     if any(row["useful_tokens_this_step"] != 1 for row in observations[1:]):
         boundary_reasons.append("a metered step did not produce exactly one useful token")
 
@@ -294,6 +299,13 @@ def run_vllm_doctor(
         },
         "observations": observations,
         "validation": validation,
+        "token_boundary_qc_pass": not validation["qc_reasons"] or (
+            len(validation["qc_reasons"]) == 1
+            and validation["qc_reasons"][0].startswith(
+                "cumulative energy counter did not advance"
+            )
+        ),
+        "energy_counter_observed": counter_end_mj > counter_start_mj,
         "qc_pass": validation["qc_pass"],
     }
 

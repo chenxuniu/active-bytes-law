@@ -27,6 +27,13 @@ module average power agrees with the cumulative counter within 2%. A large
 GPU-vs-module difference is recorded as `cross_scope_difference`; it is not a
 meter failure.
 
+The summary also reports how often the cumulative counter changes, its median
+and maximum observed update interval, and its median energy quantum. A decode
+episode shorter than the validated update interval cannot use a raw pair of
+counter endpoints: zero delta means "not yet observed," not zero physical
+energy. Extend or concatenate the strictly decode-only interval so the counter
+advances repeatedly.
+
 For GH200 studies, report both outcomes without mixing baselines:
 
 - primary mechanism outcome: GPU-board joules per useful decode token, from

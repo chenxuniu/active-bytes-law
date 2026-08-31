@@ -99,6 +99,19 @@ def summarize_scoped_samples(
         module_average_joules = _trapezoidal_joules(rows, "module_average_power_w")
         module_instant_joules = _trapezoidal_joules(rows, "module_instant_power_w")
         counter_average_power_w = counter_joules / duration_seconds
+        counter_changes = [
+            (rows[index]["monotonic_ns"], (
+                float(rows[index]["total_energy_counter_mj"])
+                - float(rows[index - 1]["total_energy_counter_mj"])
+            ) / 1000.0)
+            for index in range(1, len(rows))
+            if rows[index]["total_energy_counter_mj"]
+            != rows[index - 1]["total_energy_counter_mj"]
+        ]
+        counter_update_intervals = [
+            (right[0] - left[0]) / 1e9
+            for left, right in zip(counter_changes, counter_changes[1:])
+        ]
         module_counter_relative_error = abs(module_average_joules - counter_joules) / max(
             module_average_joules, counter_joules, 1e-12
         )
@@ -127,6 +140,23 @@ def summarize_scoped_samples(
             "module_average_integrated_joules": module_average_joules,
             "module_instant_integrated_joules": module_instant_joules,
             "module_counter_joules": counter_joules,
+            "energy_counter_changed_samples": len(counter_changes),
+            "energy_counter_zero_delta_fraction": (
+                (len(rows) - 1 - len(counter_changes)) / (len(rows) - 1)
+            ),
+            "energy_counter_median_update_interval_seconds": (
+                statistics.median(counter_update_intervals)
+                if counter_update_intervals
+                else None
+            ),
+            "energy_counter_maximum_update_interval_seconds": (
+                max(counter_update_intervals) if counter_update_intervals else None
+            ),
+            "energy_counter_median_update_joules": (
+                statistics.median(change[1] for change in counter_changes)
+                if counter_changes
+                else None
+            ),
             "module_counter_relative_error": module_counter_relative_error,
             "module_counter_qc_pass": counter_pass,
             "cross_scope_difference": cross_scope_difference,

@@ -34,6 +34,11 @@ class NvmlScopedTests(unittest.TestCase):
         self.assertTrue(report["qc_pass"])
         self.assertAlmostEqual(device["module_counter_relative_error"], 0.0)
         self.assertAlmostEqual(device["cross_scope_difference"], 1 / 3)
+        self.assertEqual(device["energy_counter_changed_samples"], 10)
+        self.assertAlmostEqual(
+            device["energy_counter_median_update_interval_seconds"], 1.0
+        )
+        self.assertAlmostEqual(device["energy_counter_median_update_joules"], 150.0)
 
     def test_wrong_module_counter_fails_qc(self):
         rows = constant_samples(gpu_watts=100.0, module_watts=150.0)
