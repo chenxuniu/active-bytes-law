@@ -52,6 +52,7 @@ class RuntimeAuditTests(unittest.TestCase):
         self.assertFalse(contract["compatibility_mode"])
         self.assertEqual(contract["attention_backend"], "FLASH_ATTN")
         self.assertEqual(contract["requested_kv_cache_dtype"], "auto")
+        self.assertFalse(contract["calculate_kv_scales"])
 
     def test_compatibility_runtime_contract_requires_matched_overrides(self):
         parameters = {
@@ -70,6 +71,24 @@ class RuntimeAuditTests(unittest.TestCase):
         self.assertTrue(contract["compatibility_mode"])
         self.assertEqual(contract["attention_backend"], "FLASHINFER")
         self.assertEqual(contract["requested_kv_cache_dtype"], "fp8_e4m3")
+        self.assertFalse(contract["calculate_kv_scales"])
+
+    def test_scale_calculation_is_compatibility_only(self):
+        parameters = {
+            "attention_backend": "FLASH_ATTN",
+            "kv_cache_dtype": "fp8_e4m3",
+        }
+        with self.assertRaises(ValueError):
+            resolve_runtime_contract(
+                parameters, compatibility_calculate_kv_scales=True
+            )
+        contract = resolve_runtime_contract(
+            parameters,
+            compatibility_attention_backend="FLASHINFER",
+            compatibility_kv_cache_dtype="fp8_e4m3",
+            compatibility_calculate_kv_scales=True,
+        )
+        self.assertTrue(contract["calculate_kv_scales"])
 
 
 if __name__ == "__main__":

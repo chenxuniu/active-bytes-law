@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -159,6 +160,63 @@ def _weight_storage_report(engine: Any) -> dict[str, Any]:
     }
 
 
+def _kv_scale_report(engine: Any, torch: Any) -> dict[str, Any]:
+    executor = getattr(engine, "model_executor", None)
+    worker = getattr(executor, "driver_worker", None)
+    model_runner = getattr(worker, "model_runner", None)
+    model = getattr(model_runner, "model", None)
+    if model is None:
+        raise RuntimeError("cannot locate the loaded model on the V0 driver worker")
+
+    def scalar(value: Any) -> float | None:
+        if isinstance(value, torch.Tensor):
+            if value.numel() != 1:
+                return None
+            return float(value.detach().float().cpu().item())
+        if isinstance(value, (int, float)):
+            return float(value)
+        return None
+
+    layers: list[dict[str, Any]] = []
+    for name, module in model.named_modules():
+        k_scale = scalar(getattr(module, "_k_scale", None))
+        v_scale = scalar(getattr(module, "_v_scale", None))
+        if k_scale is None and v_scale is None:
+            continue
+        layers.append(
+            {
+                "name": name,
+                "k_scale": k_scale,
+                "v_scale": v_scale,
+                "k_scale_float": scalar(getattr(module, "_k_scale_float", None)),
+                "v_scale_float": scalar(getattr(module, "_v_scale_float", None)),
+                "calculate_kv_scales": bool(
+                    getattr(module, "calculate_kv_scales", False)
+                ),
+            }
+        )
+    numeric = [
+        value
+        for layer in layers
+        for value in (layer["k_scale"], layer["v_scale"])
+        if value is not None
+    ]
+    return {
+        "layer_count": len(layers),
+        "finite_positive": bool(numeric)
+        and all(math.isfinite(value) and value > 0 for value in numeric),
+        "all_unity": bool(numeric)
+        and all(math.isclose(value, 1.0, rel_tol=0.0, abs_tol=1e-7) for value in numeric),
+        "unique_k_scales": sorted(
+            {layer["k_scale"] for layer in layers if layer["k_scale"] is not None}
+        ),
+        "unique_v_scales": sorted(
+            {layer["v_scale"] for layer in layers if layer["v_scale"] is not None}
+        ),
+        "layers": layers,
+    }
+
+
 def _locked_run(lock: Mapping[str, Any], run_id: str) -> Mapping[str, Any]:
     matching = [run for run in lock.get("run_order", []) if run.get("run_id") == run_id]
     if len(matching) != 1:
@@ -171,6 +229,7 @@ def resolve_runtime_contract(
     *,
     compatibility_attention_backend: str | None = None,
     compatibility_kv_cache_dtype: str | None = None,
+    compatibility_calculate_kv_scales: bool | None = None,
 ) -> dict[str, Any]:
     """Resolve either the frozen contract or a clearly non-paper compatibility probe.
 
@@ -189,12 +248,21 @@ def resolve_runtime_contract(
             "compatibility attention backend and KV cache dtype must be supplied together"
         )
     compatibility_mode = all(value is not None for value in compatibility_values)
+    if compatibility_calculate_kv_scales is not None and not compatibility_mode:
+        raise ValueError(
+            "compatibility scale calculation may only be set with compatibility overrides"
+        )
     if compatibility_mode:
         declared_kv_dtype = str(compatibility_kv_cache_dtype)
         attention_backend = str(compatibility_attention_backend)
     else:
         declared_kv_dtype = str(parameters["kv_cache_dtype"])
         attention_backend = str(parameters["attention_backend"])
+    calculate_kv_scales = (
+        bool(compatibility_calculate_kv_scales)
+        if compatibility_mode
+        else bool(parameters.get("calculate_kv_scales", False))
+    )
     if declared_kv_dtype not in {"bf16", "fp8_e4m3"}:
         raise ValueError(f"unsupported declared KV cache dtype {declared_kv_dtype!r}")
     return {
@@ -204,6 +272,7 @@ def resolve_runtime_contract(
         "requested_kv_cache_dtype": (
             "auto" if declared_kv_dtype == "bf16" else declared_kv_dtype
         ),
+        "calculate_kv_scales": calculate_kv_scales,
     }
 
 
@@ -214,6 +283,7 @@ def run_runtime_audit(
     gpu_memory_utilization: float,
     compatibility_attention_backend: str | None = None,
     compatibility_kv_cache_dtype: str | None = None,
+    compatibility_calculate_kv_scales: bool | None = None,
 ) -> dict[str, Any]:
     if not 0 < gpu_memory_utilization < 1:
         raise ValueError("gpu_memory_utilization must be between zero and one")
@@ -233,6 +303,7 @@ def run_runtime_audit(
         parameters,
         compatibility_attention_backend=compatibility_attention_backend,
         compatibility_kv_cache_dtype=compatibility_kv_cache_dtype,
+        compatibility_calculate_kv_scales=compatibility_calculate_kv_scales,
     )
     attention_backend = os.environ.get("VLLM_ATTENTION_BACKEND")
     expected_backend = contract["attention_backend"]
@@ -256,6 +327,7 @@ def run_runtime_audit(
             tokenizer_revision=parameters["model_revision"],
             dtype="bfloat16",
             kv_cache_dtype=requested_kv_dtype,
+            calculate_kv_scales=contract["calculate_kv_scales"],
             seed=2027,
             max_model_len=max(prompts) + measured + 9,
             tensor_parallel_size=1,
@@ -278,9 +350,17 @@ def run_runtime_audit(
         cache["dtypes"], declared_dtype=declared_kv_dtype
     )
     weights = _weight_storage_report(engine)
+    kv_scales = _kv_scale_report(engine, torch)
     reasons = list(cache_contract["qc_reasons"])
     if cache["gpu_tensor_count"] != cache["tensor_count"]:
         reasons.append("one or more discovered KV cache tensors are not on the GPU")
+    if declared_kv_dtype == "fp8_e4m3" and contract["calculate_kv_scales"]:
+        if not kv_scales["layer_count"]:
+            reasons.append("no scale-bearing attention layers were discovered")
+        elif not kv_scales["finite_positive"]:
+            reasons.append("one or more calculated K/V scales are nonpositive or nonfinite")
+        elif kv_scales["all_unity"]:
+            reasons.append("runtime scale calculation was requested but every K/V scale is 1.0")
     report = {
         "schema_version": 1,
         "measurement": (
@@ -297,6 +377,7 @@ def run_runtime_audit(
             "attention_backend": attention_backend,
             "weight_dtype": "bfloat16",
             "requested_kv_cache_dtype": requested_kv_dtype,
+            "calculate_kv_scales": contract["calculate_kv_scales"],
         },
         "geometry": {
             "batch": batch,
@@ -307,6 +388,7 @@ def run_runtime_audit(
         "cache": cache,
         "cache_contract": cache_contract,
         "weights": weights,
+        "kv_scales": kv_scales,
         "qc_reasons": reasons,
         "qc_pass": not reasons,
     }
@@ -318,6 +400,7 @@ def run_runtime_audit(
             "requires_new_preregistration_before_energy_measurement": True,
             "candidate_attention_backend": expected_backend,
             "candidate_kv_cache_dtype": declared_kv_dtype,
+            "candidate_calculate_kv_scales": contract["calculate_kv_scales"],
         }
     else:
         report["run_id"] = run_id
@@ -333,6 +416,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--compatibility-kv-cache-dtype", choices=("bf16", "fp8_e4m3")
     )
+    parser.add_argument(
+        "--compatibility-calculate-kv-scales", action="store_true", default=None
+    )
     parser.add_argument("--output-json", required=True, type=Path)
     args = parser.parse_args(argv)
     report = run_runtime_audit(
@@ -341,6 +427,7 @@ def main(argv: list[str] | None = None) -> int:
         gpu_memory_utilization=args.gpu_memory_utilization,
         compatibility_attention_backend=args.compatibility_attention_backend,
         compatibility_kv_cache_dtype=args.compatibility_kv_cache_dtype,
+        compatibility_calculate_kv_scales=args.compatibility_calculate_kv_scales,
     )
     _atomic_write_json(args.output_json, report)
     summary = {
@@ -352,6 +439,9 @@ def main(argv: list[str] | None = None) -> int:
         "cache": {key: value for key, value in report["cache"].items() if key != "tensors"},
         "cache_contract": report["cache_contract"],
         "weights": {key: value for key, value in report["weights"].items() if key != "inventory"},
+        "kv_scales": {
+            key: value for key, value in report["kv_scales"].items() if key != "layers"
+        },
         "output_json": str(args.output_json),
     }
     if report["frozen_run_execution"]:

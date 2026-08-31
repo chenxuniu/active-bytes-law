@@ -220,6 +220,16 @@ comparison, backend, model revision, geometry, graph mode, container, driver,
 and meter must remain identical.  Record the KV scaling policy explicitly
 before freezing that addendum.
 
+For an FP8 cell whose checkpoint does not provide calibrated K/V scales, do
+not infer that the documented runtime-calculation switch works on the pinned
+V0 graph stack.  Run a second non-paper FP8 compatibility audit with
+`--compatibility-calculate-kv-scales`.  The audit inventories each loaded
+attention layer and fails if the scales are missing, nonpositive/nonfinite, or
+remain uniformly 1.0.  Only a passing observed scale contract may be frozen as
+`calculate_kv_scales=true`; otherwise use a separately calibrated and
+content-addressed checkpoint or classify FP8 as an uncalibrated mechanism-only
+treatment.
+
 Follow the order in the lock file. A repetition may contain multiple
 independent 1,024-step episodes. Sum only decode-marker time, energy, and useful
 tokens until that repetition contains at least 30 seconds of decode. Never add
