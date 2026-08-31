@@ -98,6 +98,24 @@ the trace manually. Normalized historical lengths must be `32..39`, request
 membership must be constant, and the energy marker must exclude prefill. Then
 run the strict validator with `--measured-decode-tokens 8`.
 
+For the pinned NVIDIA vLLM V0 engine, the repository doctor performs one
+unmetered bootstrap `engine.step()`, synchronizes CUDA, reads the cumulative
+energy counter, and then admits exactly eight metered `engine.step()` calls:
+
+```bash
+VLLM_USE_V1=0 python3 scripts/run_decode_doctor.py \
+  --model Qwen/Qwen3-0.6B \
+  --prompt-tokens 32 --measured-decode-tokens 8 \
+  --output-json artifacts/private/decode-doctor.json
+```
+
+This small-model run verifies instrumentation only and is marked
+`non_paper_measurement`. Repeat the doctor with the pinned study model and
+runtime mode before opening pilot outcomes. The doctor rejects any first step
+that does not produce exactly one bootstrap token, any metered step that does
+not add exactly one cumulative output token, early/late completion, timestamp
+disorder, or a decreasing cumulative-energy counter.
+
 Do not continue until the doctor demonstrates a real bootstrap barrier. TTFT,
 client timestamps, or subtraction of a separately timed prefill do not satisfy
 the boundary contract.

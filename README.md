@@ -31,6 +31,7 @@ checks pass.
   repeats;
 - boundary-interpolated trapezoidal integration of sampled power telemetry;
 - scoped NVML collection that keeps GH200 GPU-board and module energy separate;
+- an executable vLLM one-bootstrap/eight-decode boundary doctor;
 - campaign membership plus public artifact size/SHA-256 validation;
 - a whitelist-only public system-profile collector;
 - a publication-safety scanner and CI tests;
@@ -84,6 +85,10 @@ For Grace Hopper, first run the [GH200 scoped-power meter audit](docs/gh200-mete
 The cumulative energy counter on the validated stack follows module power,
 while the mechanism-facing primary outcome integrates GPU-board power. These
 boundaries and their idle baselines must never be mixed.
+
+After the meter gate passes, run `scripts/run_decode_doctor.py` under the pinned
+vLLM V0 engine. Its 32-token prompt, one unmetered bootstrap token, and eight
+metered engine steps are instrumentation checks, not paper measurements.
 
 ## Campaigns
 
