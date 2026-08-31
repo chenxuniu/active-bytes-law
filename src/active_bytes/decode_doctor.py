@@ -98,10 +98,12 @@ def _single_request_output(outputs: list[Any], request_id: str) -> Any:
 def run_vllm_doctor(
     *,
     model: str,
+    model_revision: str | None,
     prompt_tokens: int,
     measured_decode_tokens: int,
     gpu_memory_utilization: float,
     seed: int,
+    enforce_eager: bool,
 ) -> dict[str, Any]:
     """Execute one bootstrap step followed by exact pure-decode engine steps."""
 
@@ -127,6 +129,8 @@ def run_vllm_doctor(
     max_model_len = prompt_tokens + total_output_tokens + 8
     engine_args = EngineArgs(
         model=model,
+        revision=model_revision,
+        tokenizer_revision=model_revision,
         dtype="bfloat16",
         kv_cache_dtype="auto",
         seed=seed,
@@ -140,7 +144,7 @@ def run_vllm_doctor(
         enable_chunked_prefill=False,
         swap_space=0,
         cpu_offload_gb=0,
-        enforce_eager=True,
+        enforce_eager=enforce_eager,
         disable_async_output_proc=True,
         disable_log_stats=True,
         speculative_config=None,
@@ -254,9 +258,10 @@ def run_vllm_doctor(
             "vllm_version": vllm.__version__,
             "engine_module": LLMEngine.__module__,
             "model": model,
+            "model_revision": model_revision,
             "dtype": "bfloat16",
             "kv_cache_dtype": "auto",
-            "enforce_eager": True,
+            "enforce_eager": enforce_eager,
             "prefix_caching": False,
             "chunked_prefill": False,
             "speculation": False,
@@ -296,18 +301,24 @@ def run_vllm_doctor(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="Qwen/Qwen3-0.6B")
+    parser.add_argument("--model-revision")
     parser.add_argument("--prompt-tokens", type=int, default=32)
     parser.add_argument("--measured-decode-tokens", type=int, default=8)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=2027)
+    parser.add_argument(
+        "--runtime-mode", choices=("eager", "graph"), default="eager"
+    )
     parser.add_argument("--output-json", required=True, type=Path)
     args = parser.parse_args(argv)
     report = run_vllm_doctor(
         model=args.model,
+        model_revision=args.model_revision,
         prompt_tokens=args.prompt_tokens,
         measured_decode_tokens=args.measured_decode_tokens,
         gpu_memory_utilization=args.gpu_memory_utilization,
         seed=args.seed,
+        enforce_eager=args.runtime_mode == "eager",
     )
     _atomic_write_json(args.output_json, report)
     print(json.dumps(report, indent=2, sort_keys=True))

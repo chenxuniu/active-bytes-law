@@ -17,7 +17,7 @@
     {
       "block_id": "ncu-qwen",
       "split": "profiler-anchor",
-      "constants": {"model": "Qwen/Qwen2.5-7B-Instruct", "model_id": "qwen2p5-7b", "weight_dtype": "bf16"},
+      "constants": {"model": "Qwen/Qwen2.5-7B-Instruct", "model_id": "qwen2p5-7b", "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28", "weight_dtype": "bf16"},
       "cells": [
         {"cell_id": "nq-l4096-b4-bf16", "context_tokens": 4096, "target_batch": 4, "kv_cache_dtype": "bf16"},
         {"cell_id": "nq-l4096-b4-fp8", "context_tokens": 4096, "target_batch": 4, "kv_cache_dtype": "fp8_e4m3"},
@@ -46,7 +46,7 @@
     {
       "block_id": "ncu-weight",
       "split": "profiler-anchor",
-      "constants": {"model": "Qwen/Qwen2.5-7B-Instruct", "model_id": "qwen2p5-7b", "weight_dtype": "fp8_e4m3_engine_native", "kv_cache_dtype": "bf16"},
+      "constants": {"model": "Qwen/Qwen2.5-7B-Instruct", "model_id": "qwen2p5-7b", "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28", "weight_dtype": "fp8_e4m3_engine_native", "kv_cache_dtype": "bf16"},
       "cells": [
         {"cell_id": "nw-l8192-b16-fp8w", "context_tokens": 8192, "target_batch": 16}
       ]

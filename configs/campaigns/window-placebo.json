@@ -5,7 +5,7 @@
   "defaults": {
     "model": "Qwen/Qwen2.5-7B-Instruct",
     "model_id": "qwen2p5-7b",
-    "model_revision": "PIN_BEFORE_PILOT",
+    "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
     "weight_dtype": "bf16",
     "kv_cache_dtype": "bf16",
     "context_tokens": 4096,

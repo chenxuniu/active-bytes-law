@@ -116,6 +116,10 @@ that does not produce exactly one bootstrap token, any metered step that does
 not add exactly one cumulative output token, early/late completion, timestamp
 disorder, or a decreasing cumulative-energy counter.
 
+The Qwen study model is frozen at revision
+`a09a35458c702b33eeacc393d103063234e8bc28`. Pass that value with
+`--model-revision`; pass `--runtime-mode graph` for the study-mode doctor.
+
 Do not continue until the doctor demonstrates a real bootstrap barrier. TTFT,
 client timestamps, or subtraction of a separately timed prefill do not satisfy
 the boundary contract.
