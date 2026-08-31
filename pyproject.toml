@@ -17,6 +17,7 @@ ab-expand-campaign = "active_bytes.campaign:main"
 ab-validate-trace = "active_bytes.validation:main"
 ab-summarize-energy = "active_bytes.energy:main"
 ab-integrate-power = "active_bytes.telemetry:main"
+ab-collect-nvml-scoped = "active_bytes.nvml_scoped:main"
 ab-validate-manifest = "active_bytes.artifacts:main"
 
 [tool.setuptools]

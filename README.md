@@ -30,6 +30,7 @@ checks pass.
 - DCGM cumulative-energy aggregation across episodes and CV across independent
   repeats;
 - boundary-interpolated trapezoidal integration of sampled power telemetry;
+- scoped NVML collection that keeps GH200 GPU-board and module energy separate;
 - campaign membership plus public artifact size/SHA-256 validation;
 - a whitelist-only public system-profile collector;
 - a publication-safety scanner and CI tests;
@@ -78,6 +79,11 @@ python3 scripts/validate_manifest.py \
 
 The exact command order, stop/go gates, and expected GPU time are in the
 [step-by-step experiment runbook](docs/experiment-runbook.md).
+
+For Grace Hopper, first run the [GH200 scoped-power meter audit](docs/gh200-meter-audit.md).
+The cumulative energy counter on the validated stack follows module power,
+while the mechanism-facing primary outcome integrates GPU-board power. These
+boundaries and their idle baselines must never be mixed.
 
 ## Campaigns
 
