@@ -84,6 +84,33 @@ def integrate_power(
     }
 
 
+def select_power_series(
+    samples: Iterable[Mapping[str, Any]],
+    *,
+    power_field: str,
+    gpu_index: int | None = None,
+) -> list[dict[str, Any]]:
+    """Select one scoped power field and normalize it for integration."""
+
+    selected: list[dict[str, Any]] = []
+    for index, sample in enumerate(samples):
+        if gpu_index is not None and sample.get("gpu_index") != gpu_index:
+            continue
+        if "monotonic_ns" not in sample:
+            raise ValueError(f"telemetry row {index} is missing monotonic_ns")
+        if power_field not in sample:
+            raise ValueError(f"telemetry row {index} is missing {power_field}")
+        selected.append(
+            {
+                "monotonic_ns": sample["monotonic_ns"],
+                "power_w": sample[power_field],
+            }
+        )
+    if not selected:
+        raise ValueError("no telemetry rows matched the requested GPU and power field")
+    return selected
+
+
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open(encoding="utf-8") as handle:
@@ -103,14 +130,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--start-ns", required=True, type=int)
     parser.add_argument("--end-ns", required=True, type=int)
     parser.add_argument("--maximum-gap-ms", type=float, default=250.0)
+    parser.add_argument("--power-field", default="power_w")
+    parser.add_argument("--gpu-index", type=int)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
     report = integrate_power(
-        read_jsonl(args.input),
+        select_power_series(
+            read_jsonl(args.input),
+            power_field=args.power_field,
+            gpu_index=args.gpu_index,
+        ),
         start_ns=args.start_ns,
         end_ns=args.end_ns,
         maximum_gap_seconds=args.maximum_gap_ms / 1000,
     )
+    report["power_field"] = args.power_field
+    report["gpu_index"] = args.gpu_index
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(f"wrote {args.output}; gap_qc_pass={report['gap_qc_pass']}")

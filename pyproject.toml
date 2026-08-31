@@ -19,6 +19,7 @@ ab-summarize-energy = "active_bytes.energy:main"
 ab-integrate-power = "active_bytes.telemetry:main"
 ab-collect-nvml-scoped = "active_bytes.nvml_scoped:main"
 ab-run-decode-doctor = "active_bytes.decode_doctor:main"
+ab-align-loaded-audit = "active_bytes.loaded_audit:main"
 ab-validate-manifest = "active_bytes.artifacts:main"
 
 [tool.setuptools]
