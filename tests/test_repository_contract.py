@@ -18,6 +18,16 @@ class RepositoryContractTests(unittest.TestCase):
             ["bash", "-n", str(ROOT / "scripts" / "collect_preflight.sh")], check=True
         )
 
+    def test_calibration_requirements_are_fully_pinned(self):
+        requirements = (
+            ROOT / "calibration" / "requirements-gh200.txt"
+        ).read_text(encoding="utf-8").splitlines()
+        active = [line for line in requirements if line and not line.startswith("#")]
+        self.assertTrue(active)
+        self.assertTrue(all(line.count("==") == 1 for line in active))
+        names = [line.split("==", 1)[0] for line in active]
+        self.assertEqual(len(names), len(set(names)))
+
 
 if __name__ == "__main__":
     unittest.main()

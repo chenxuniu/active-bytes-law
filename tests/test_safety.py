@@ -25,6 +25,9 @@ class SafetyTests(unittest.TestCase):
         text = '{"gpu": "NVIDIA H100 80GB HBM3", "os": "Ubuntu 22.04"}'
         self.assertEqual(scan_text(text), [])
 
+    def test_allowlisted_public_package_version_is_clean(self):
+        self.assertEqual(scan_text("llmcompressor==0.6.0.1"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -47,6 +47,7 @@ PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 IPV4 = re.compile(r"(?<![0-9.])(?:\d{1,3}\.){3}\d{1,3}(?![0-9.])")
 FQDN = re.compile(r"\b(?:[a-z0-9-]+\.)+nvidia\.(?:com|net)\b", re.I)
 PUBLIC_NVIDIA_HOSTS = {"www.nvidia.com", "developer.nvidia.com", "docs.nvidia.com"}
+PUBLIC_VERSION_LITERALS = {"0.6.0.1"}
 
 
 def tracked_or_publishable_files(root: Path) -> list[Path]:
@@ -72,6 +73,8 @@ def scan_text(text: str) -> list[tuple[str, str]]:
             findings.append((label, match.group(0)[:120]))
     for match in IPV4.finditer(text):
         candidate = match.group(0)
+        if candidate in PUBLIC_VERSION_LITERALS:
+            continue
         try:
             address = ipaddress.ip_address(candidate)
         except ValueError:
