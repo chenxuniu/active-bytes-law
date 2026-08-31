@@ -43,3 +43,38 @@ docker run --rm \
 
 This is a smoke test only. Dataset download and calibration remain closed until
 the reported API is reviewed.
+
+After that audit passes, run the calibration doctor before producing a full
+checkpoint. The doctor pins both the model and dataset revisions, deterministically
+selects eight UltraChat records, calibrates tensor-wise FP8 K/V scales at a short
+sequence length, and does not save a checkpoint. It fails unless all expected
+attention layers expose finite positive K/V scales, the scales are not all 1.0,
+and a probe of the original BF16 parameters remains unchanged. Its output is
+explicitly non-paper data and no energy collector may run beside it.
+
+```bash
+docker run --rm \
+  --ipc=host \
+  --gpus '"device=0"' \
+  -e HOME=/workspace/home \
+  -e HF_HOME=/workspace/hf-cache \
+  -v "$PWD:/workspace/active-bytes-law:ro" \
+  -v /path/to/results:/workspace/results \
+  -v /path/to/hf-cache:/workspace/hf-cache \
+  -v /path/to/container-home:/workspace/home \
+  --entrypoint python3 \
+  token-energy-law-calibration:0.3 \
+  /workspace/active-bytes-law/scripts/run_kv_calibration_doctor.py \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --model-revision a09a35458c702b33eeacc393d103063234e8bc28 \
+  --dataset-revision 8049631c405ae6576f93f445c6b8166f76f5505a \
+  --num-calibration-samples 8 \
+  --max-sequence-length 256 \
+  --seed 2027 \
+  --output-json /workspace/results/calibration-doctor.json
+```
+
+Do not promote the short doctor to the full calibration simply by changing its
+arguments. The full 512-sample, 2048-token checkpoint requires a separately
+recorded execution contract and a post-save load audit in the frozen inference
+image.

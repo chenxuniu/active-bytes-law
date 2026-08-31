@@ -22,6 +22,7 @@ ab-run-decode-doctor = "active_bytes.decode_doctor:main"
 ab-align-loaded-audit = "active_bytes.loaded_audit:main"
 ab-run-batch-doctor = "active_bytes.batch_doctor:main"
 ab-validate-manifest = "active_bytes.artifacts:main"
+ab-run-kv-calibration-doctor = "active_bytes.kv_calibration:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
