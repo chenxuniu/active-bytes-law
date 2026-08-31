@@ -62,7 +62,7 @@ def align_loaded_audit(
         module_instant_joules, counter_joules
     )
     gaps_pass = all(report["gap_qc_pass"] for report in integrals.values())
-    counter_agreement_pass = min(average_error, instant_error) <= module_counter_error_limit
+    counter_agreement_pass = instant_error <= module_counter_error_limit
     reasons: list[str] = []
     if not token_boundary_pass:
         reasons.append("doctor token boundary failed")
@@ -70,8 +70,8 @@ def align_loaded_audit(
         reasons.append("one or more telemetry fields exceeded the sampling-gap limit")
     if not counter_agreement_pass:
         reasons.append(
-            "neither module average nor module instantaneous integration agrees "
-            f"with the counter within {module_counter_error_limit:.2%}"
+            "module instantaneous-power integration does not agree with the "
+            f"counter within {module_counter_error_limit:.2%}"
         )
     return {
         "schema_version": 1,
