@@ -49,6 +49,13 @@ file. Retain samples after `DECODE_DONE` and align them offline with
 clock. The gate checks exact boundary bracketing, sampling gaps, and
 module-power integration against the cumulative counter.
 
+The accepted loaded audit used 617 boundary-aligned points over 6.151 seconds.
+Its maximum sampling gap was 23.9 ms. Instantaneous module-power integration
+was 3055.34 J versus a 3080.31 J cumulative-counter delta (0.81% relative
+error), so the 2% loaded gate passed. The one-second average field was 5.65%
+low over the same boundaries and is excluded from short-interval energy
+estimation.
+
 For GH200 studies, report both outcomes without mixing baselines:
 
 - primary mechanism outcome: GPU-board joules per useful decode token, from

@@ -86,6 +86,10 @@ The cumulative energy counter on the validated stack follows module power,
 while the mechanism-facing primary outcome integrates GPU-board power. These
 boundaries and their idle baselines must never be mixed.
 
+The accepted loaded audit uses 10 ms requested instantaneous-power telemetry;
+the one-second average field is diagnostic only because its boundary lag
+exceeded the preregistered 2% agreement gate.
+
 After the meter gate passes, run `scripts/run_decode_doctor.py` under the pinned
 vLLM V0 engine. Its 32-token prompt, one unmetered bootstrap token, and eight
 metered engine steps are instrumentation checks, not paper measurements.

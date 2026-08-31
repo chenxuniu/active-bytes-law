@@ -70,6 +70,22 @@ rule. Samples must bracket the decode interval; interpolation is used at each
 boundary. The pilot requires cumulative-counter and integrated-power energy to
 agree within 2% after declared boundary uncertainty.
 
+### GH200 scoped-power specialization
+
+On the validated Grace Hopper stack, sample scoped NVML instantaneous power at
+10 ms requested cadence and reject any trace whose maximum realized gap exceeds
+50 ms. Scope 0 (GPU board, including associated memory circuitry) is the
+primary mechanism-facing energy boundary. Scope 1 is the Grace Hopper module
+boundary and must agree with the module cumulative-energy counter within 2% on
+a continuous decode-only audit of at least 5 seconds.
+
+Do not use the one-second average-power field for boundary-aligned energy on
+short decode intervals. In the loaded audit it lagged the cumulative module
+counter by 5.65%, while instantaneous module-power integration differed by
+0.81%. Average power remains a steady-state diagnostic only. The bare-idle and
+loaded-idle baselines are boundary-specific; never subtract module idle from
+GPU-board energy or vice versa.
+
 ## Profiler separation
 
 NCU runs share cell settings and the `activebytes_decode` NVTX range but have
