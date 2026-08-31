@@ -55,11 +55,45 @@ def _flatten_tensors(value: Any, torch: Any) -> Iterable[Any]:
             yield from _flatten_tensors(child, torch)
 
 
+def _known_cache_roots(worker: Any) -> list[tuple[str, Any]]:
+    roots: list[tuple[str, Any]] = []
+    for name in ("gpu_cache", "kv_cache", "kv_caches"):
+        value = getattr(worker, name, None)
+        if value is not None:
+            roots.append((f"driver_worker.{name}", value))
+    cache_engines = getattr(worker, "cache_engine", None)
+    if isinstance(cache_engines, (list, tuple)):
+        for index, cache_engine in enumerate(cache_engines):
+            for name in ("gpu_cache", "kv_cache", "kv_caches"):
+                value = getattr(cache_engine, name, None)
+                if value is not None:
+                    roots.append((f"cache_engine[{index}].{name}", value))
+    elif cache_engines is not None:
+        for name in ("gpu_cache", "kv_cache", "kv_caches"):
+            value = getattr(cache_engines, name, None)
+            if value is not None:
+                roots.append((f"cache_engine.{name}", value))
+    model_runner = getattr(worker, "model_runner", None)
+    for name in ("gpu_cache", "kv_cache", "kv_caches"):
+        value = getattr(model_runner, name, None)
+        if value is not None:
+            roots.append((f"model_runner.{name}", value))
+    return roots
+
+
 def _cache_tensor_report(engine: Any, torch: Any) -> dict[str, Any]:
     executor = getattr(engine, "model_executor", None)
     worker = getattr(executor, "driver_worker", None)
-    cache_engines = getattr(worker, "cache_engine", None)
-    tensors = list(_flatten_tensors(cache_engines, torch))
+    roots = _known_cache_roots(worker)
+    discovered: list[Any] = []
+    seen: set[int] = set()
+    for _, root in roots:
+        for tensor in _flatten_tensors(root, torch):
+            identity = id(tensor)
+            if identity not in seen:
+                seen.add(identity)
+                discovered.append(tensor)
+    tensors = discovered
     rows = [
         {
             "dtype": str(tensor.dtype),
@@ -76,6 +110,7 @@ def _cache_tensor_report(engine: Any, torch: Any) -> dict[str, Any]:
         "gpu_tensor_count": sum(row["device_type"] == "cuda" for row in rows),
         "logical_nbytes": sum(row["logical_nbytes"] for row in rows),
         "dtypes": sorted({row["dtype"] for row in rows}),
+        "inspected_roots": [name for name, _ in roots],
         "tensors": rows,
     }
 
