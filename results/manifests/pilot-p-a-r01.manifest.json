@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "ab1-pilot-p-a-l4096-b8-bf16-r01",
+  "cell_id": "p-a-l4096-b8-bf16",
+  "split": "pilot",
+  "repeat": 1,
+  "accepted_attempt_id": "attempt-02-20260831T222918Z",
+  "campaign_lock_sha256": "38e8e60293bff021ebc5e0dfa40c8e77733daff1c8c9e01483c271e81757090b",
+  "campaign_lock_uri": "results/manifests/pilot.lock.json",
+  "device_label": "gpu-0",
+  "software": {
+    "container_digest": "sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "runner_code_commit": "b7af6e0",
+    "vllm_version_components": [0, 10, 1, 1],
+    "vllm_local_version": "381074ae.nv25.09",
+    "attention_backend": "FLASH_ATTN"
+  },
+  "model": {
+    "model_id": "qwen2p5-7b",
+    "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "weight_dtype": "bfloat16",
+    "resolved_kv_tensor_dtype": "torch.bfloat16"
+  },
+  "engine_contract": {
+    "engine_module": "vllm.engine.llm_engine",
+    "graph_mode": true,
+    "prefix_cache": false,
+    "chunked_prefill": false,
+    "speculative_decode": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "primary_energy_scope": "GPU-board scope-0 instantaneous-power integral",
+    "secondary_energy_scope": "GH200 module scope-1 instantaneous-power integral"
+  },
+  "runtime_accounting": {
+    "weight_storage_bytes": 15239621632,
+    "kv_bytes_per_token": 57344,
+    "tensor_inventory_sha256": "51a23f1a511aa282dffab99dafb0c1c9b522e3d003d6333e6574d54da0c8f70b"
+  },
+  "requested_geometry": {
+    "prompt_tokens": null,
+    "prompt_lengths": [3584, 3584, 3584, 3584, 3585, 3585, 3585, 3585],
+    "target_mean_attended_history_tokens": 4096,
+    "target_batch": 8,
+    "requested_api_output_tokens": 1025,
+    "metered_decode_tokens_per_request": 1024,
+    "minimum_decode_seconds_per_repeat": 30
+  },
+  "realized_geometry": {
+    "effective_batch": 8,
+    "mean_attended_context": 4096,
+    "metered_useful_tokens": 40960,
+    "decode_seconds": 37.427764217000004,
+    "episode_count": 5
+  },
+  "accepted_results": {
+    "gpu_board_joules_per_useful_token": 0.3893896005695311,
+    "module_joules_per_useful_token": 0.47153876171039977,
+    "module_counter_relative_error": 0.00033820199959108346,
+    "active_bytes_read_per_useful_token": 2139833728.0
+  },
+  "attempts": [
+    {
+      "attempt_id": "attempt-01-20260831T221406Z",
+      "status": "excluded",
+      "reason": "instrumentation-observer-failure"
+    },
+    {
+      "attempt_id": "attempt-02-20260831T222918Z",
+      "status": "pass",
+      "full_window_collector_status": "diagnostic-gap-outside-estimation-intervals"
+    }
+  ],
+  "artifacts": [
+    {
+      "role": "sanitized-energy-summary",
+      "artifact_uri": "results/summaries/pilot-p-a-r01.json",
+      "sha256": "eff9214cd185d492b35d4632ef6fa74bc5c06e514b9ffb555648030fc5ef8a94",
+      "bytes": 4110
+    }
+  ],
+  "qc": {
+    "status": "pass",
+    "reasons": [],
+    "maximum_aligned_sampling_gap_seconds": 0.0216569,
+    "sampling_gap_limit_seconds": 0.05,
+    "module_counter_error_limit": 0.02,
+    "module_counter_relative_error": 0.00033820199959108346
+  }
+}

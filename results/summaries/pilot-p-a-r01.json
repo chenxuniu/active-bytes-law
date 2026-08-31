@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "measurement": "aligned-frozen-pilot-repeat",
+  "status": "accepted",
+  "run_id": "ab1-pilot-p-a-l4096-b8-bf16-r01",
+  "cell_id": "p-a-l4096-b8-bf16",
+  "repeat": 1,
+  "accepted_attempt_id": "attempt-02-20260831T222918Z",
+  "campaign_lock_sha256": "38e8e60293bff021ebc5e0dfa40c8e77733daff1c8c9e01483c271e81757090b",
+  "primary_result": {
+    "scope": "GPU-board scope-0 instantaneous-power integral",
+    "energy_joules": 15949.398039327994,
+    "joules_per_useful_token": 0.3893896005695311,
+    "average_decode_power_w": 426.13814565187533
+  },
+  "secondary_result": {
+    "scope": "GH200 module scope-1 instantaneous-power integral",
+    "energy_joules": 19314.227679657975,
+    "joules_per_useful_token": 0.47153876171039977,
+    "average_decode_power_w": 516.0401131009928
+  },
+  "module_counter_check": {
+    "energy_joules": 19320.762,
+    "joules_per_useful_token": 0.471698291015625,
+    "instantaneous_integral_relative_error": 0.00033820199959108346,
+    "qc_limit": 0.02,
+    "qc_pass": true
+  },
+  "geometry": {
+    "target_mean_attended_history_tokens": 4096,
+    "prompt_lengths": [3584, 3584, 3584, 3584, 3585, 3585, 3585, 3585],
+    "effective_batch": 8,
+    "metered_decode_tokens_per_request": 1024,
+    "episode_count": 5,
+    "decode_seconds": 37.427764217000004,
+    "metered_useful_tokens": 40960,
+    "throughput_useful_tokens_per_second": 1094.3747471134177,
+    "minimum_episode_decode_seconds": 7.236708317
+  },
+  "mechanism_accounting": {
+    "unique_weight_storage_bytes": 15239621632,
+    "weight_inventory_sha256": "51a23f1a511aa282dffab99dafb0c1c9b522e3d003d6333e6574d54da0c8f70b",
+    "kv_bytes_per_historical_token": 57344,
+    "weight_bytes_per_useful_token": 1904952704.0,
+    "kv_read_bytes_per_useful_token": 234881024,
+    "kv_write_bytes_per_useful_token": 57344.0,
+    "active_bytes_read_per_useful_token": 2139833728.0,
+    "active_bytes_read_write_per_useful_token": 2139891072.0,
+    "kv_to_weight_active_byte_ratio": 0.12330018666962138
+  },
+  "runtime": {
+    "accelerator_class": "NVIDIA GH200 144GB HBM3e",
+    "attention_backend": "FLASH_ATTN",
+    "weight_dtype": "bfloat16",
+    "resolved_kv_tensor_dtype": "torch.bfloat16",
+    "vllm_version_components": [0, 10, 1, 1],
+    "vllm_local_version": "381074ae.nv25.09",
+    "container_digest": "sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "runner_code_commit": "b7af6e0"
+  },
+  "quality_control": {
+    "runner_qc_pass": true,
+    "alignment_qc_pass": true,
+    "all_episode_qc_pass": true,
+    "maximum_aligned_sampling_gap_seconds": 0.0216569,
+    "aligned_sampling_gap_limit_seconds": 0.05,
+    "full_window_collector_qc_pass": false,
+    "full_window_maximum_gap_seconds": 0.186296898,
+    "full_window_failure_outside_all_estimation_intervals": true,
+    "full_window_module_counter_relative_error": 0.000047966257626285046,
+    "acceptance_basis": "Every exact GO/DONE interval brackets valid samples and passes the 50 ms gap gate; the full-window gap occurred outside all estimands."
+  },
+  "attempt_history": [
+    {
+      "attempt_id": "attempt-01-20260831T221406Z",
+      "status": "excluded",
+      "reason": "instrumentation-observer-failure: deque swap queue was incorrectly classified as unobservable"
+    },
+    {
+      "attempt_id": "attempt-02-20260831T222918Z",
+      "status": "accepted",
+      "reason": "runner and exact-boundary alignment QC passed"
+    }
+  ],
+  "private_artifact_digests": [
+    {
+      "role": "repeat-trace",
+      "sha256": "6c4d5ab46e5671622f727fe05ffa2c805ec4f95db40ea36e6284c5dd3e0d5252",
+      "bytes": 12117549
+    },
+    {
+      "role": "scoped-telemetry",
+      "sha256": "813051ca03f1a7922f17f5496b434a127e14745613159104727c694a836cc477",
+      "bytes": 2758571
+    },
+    {
+      "role": "telemetry-full-window-diagnostic",
+      "sha256": "1b0ff6904b714d60450d1931a015449780d8aeb6e8861bfbd1db563a8c58f54d",
+      "bytes": 1621
+    },
+    {
+      "role": "exact-boundary-alignment",
+      "sha256": "397eb3284543b80b5967f425e03c8cc54ee8926570916ad48ab9c7752051e447",
+      "bytes": 8708
+    }
+  ]
+}
