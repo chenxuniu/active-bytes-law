@@ -14,14 +14,26 @@ results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
 hf_cache=${TEL_HF_CACHE:-/srv/token-energy-law/hf-cache}
 container_home=${TEL_CONTAINER_HOME:-/srv/token-energy-law/container-home}
 campaign_lock=${TEL_CAMPAIGN_LOCK:-$repo_root/results/manifests/pilot.lock.json}
-allocation_addendum="$repo_root/configs/addenda/gh200-pilot-memory-admission-v1.json"
+execution_addendum=${TEL_EXECUTION_ADDENDUM:-$repo_root/configs/addenda/gh200-pilot-memory-admission-v1.json}
+result_domain=${TEL_RESULT_DOMAIN:-pilot}
+require_clean_repo=${TEL_REQUIRE_CLEAN_REPO:-0}
 
-for path in "$campaign_lock" "$allocation_addendum"; do
+for path in "$campaign_lock" "$execution_addendum"; do
   if [[ ! -r "$path" ]]; then
     echo "required frozen contract is missing: $path" >&2
     exit 66
   fi
 done
+
+if [[ ! "$result_domain" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+  echo "invalid result domain: $result_domain" >&2
+  exit 65
+fi
+if [[ "$require_clean_repo" == "1" ]] && [[ -n "$(git -C "$repo_root" status --short)" ]]; then
+  echo "primary execution requires a clean repository checkout" >&2
+  git -C "$repo_root" status --short >&2
+  exit 65
+fi
 
 run_contract=$(python3 - "$campaign_lock" "$run_id" <<'PY'
 import json
@@ -86,9 +98,26 @@ then
   exit 65
 fi
 
+locked_addendum_sha=$(python3 - "$campaign_lock" "$run_id" <<'PY'
+import json
+import sys
+lock = json.load(open(sys.argv[1], encoding="utf-8"))
+run = next(row for row in lock["run_order"] if row["run_id"] == sys.argv[2])
+value = run["parameters"].get("execution_addendum_sha256")
+print("" if value is None else value)
+PY
+)
+if [[ -n "$locked_addendum_sha" ]]; then
+  observed_addendum_sha=$(sha256sum "$execution_addendum" | awk '{print $1}')
+  if [[ "$observed_addendum_sha" != "$locked_addendum_sha" ]]; then
+    echo "execution addendum does not match the frozen run contract" >&2
+    exit 65
+  fi
+fi
+
 tag=$(date -u +%Y%m%dT%H%M%SZ)
-attempt_dir="$results_root/pilot/$run_id/attempt-$tag"
-relative_attempt="pilot/$run_id/attempt-$tag"
+attempt_dir="$results_root/$result_domain/$run_id/attempt-$tag"
+relative_attempt="$result_domain/$run_id/attempt-$tag"
 mkdir -p "$attempt_dir"
 
 ready_file="$attempt_dir/engine.ready.json"
@@ -111,7 +140,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 git -C "$repo_root" rev-parse HEAD >"$attempt_dir/repository.commit.txt"
-sha256sum "$campaign_lock" "$allocation_addendum" >"$attempt_dir/contracts.sha256.txt"
+sha256sum "$campaign_lock" "$execution_addendum" >"$attempt_dir/contracts.sha256.txt"
 nvidia-smi -i "$gpu_index" \
   --query-gpu=index,name,memory.used,memory.free,power.draw,power.limit,temperature.gpu \
   --format=csv >"$attempt_dir/gpu.before.csv"

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "addendum_id": "gh200-primary-bf16-v1",
+  "created_utc": "2026-09-01T18:15:00Z",
+  "decision_stage": "after-q0-before-any-confirmatory-primary-outcome",
+  "decision": {
+    "primary_accelerator": "NVIDIA GH200 144GB HBM3e",
+    "reason": "The exclusive GH200 lease remains available for one week, its exact decode boundary and scoped energy meter passed Q0, and no H100 confirmatory outcome has been opened.",
+    "supersedes_planned_h100_as_mandatory_primary_platform": true,
+    "does_not_reclassify_q0_runs_as_confirmatory": true
+  },
+  "scope": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "attention_backend": "FLASH_ATTN",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "driver_version": "580.173.02",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1
+  },
+  "pre_outcome_evidence": {
+    "exact_extreme_geometry_passed": {
+      "target_mean_attended_history_tokens": 16384,
+      "target_batch": 32,
+      "metered_decode_tokens_per_request": 1024,
+      "gpu_memory_utilization": 0.8,
+      "observed_steps": 1025,
+      "metered_useful_tokens": 32768,
+      "qc_pass": true
+    },
+    "accepted_bf16_pilot_repeats": 6,
+    "accepted_allocator_control_repeats": 3,
+    "maximum_primary_board_cv_fraction": 0.02359046004489533,
+    "allocator_control_board_relative_shift": 0.011681429600085558,
+    "allocator_control_interpretation": "The uniform 0.80 reservation is an execution setting, not an active-byte term; the observed P-A shift is descriptive Q0 evidence only."
+  },
+  "identification_design": {
+    "target_mean_attended_history_tokens": [4096, 8192, 16384],
+    "target_batch": [4, 8, 16, 24, 32],
+    "coefficient_fit_batches": [4, 32],
+    "residual_calibration_batches": [16],
+    "unopened_evaluation_batches": [8, 24],
+    "independent_repeats_per_cell": 5,
+    "randomized_cyclic_execution": true,
+    "pilot_runs_enter_no_confirmatory_role": true
+  },
+  "execution_policy": {
+    "gpu_memory_utilization": 0.8,
+    "requested_api_output_tokens": 1025,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 1024,
+    "minimum_episode_decode_seconds": 5,
+    "minimum_repeat_decode_seconds": 30,
+    "prompt_length_policy": "balanced-exact-target-mean",
+    "chunked_prefill": false,
+    "cpu_offload_gb": 0,
+    "swap_space_gb": 0,
+    "prefix_caching": false,
+    "speculation": false,
+    "power_limit_w": 700
+  },
+  "measurement_policy": {
+    "primary_energy_scope": "gpu-board-nvml-scope-0-instantaneous-integral",
+    "secondary_energy_scope": "gh200-module-nvml-scope-1-and-counter",
+    "maximum_aligned_sampling_gap_ms": 50,
+    "maximum_module_counter_relative_error": 0.02,
+    "global_collector_gap_outside_all_decode_intervals_does_not_censor_an_aligned_repeat": true
+  },
+  "fp8_firewall": {
+    "current_runtime_status": "backend-censored-before-energy",
+    "bf16_primary_may_proceed": true,
+    "fp8_may_enter_only_under_a_new_content_addressed_matched_bf16_fp8_campaign": true,
+    "fp8_failure_does_not_invalidate_the_bf16_two-term_test": true
+  },
+  "claim_firewall": {
+    "q0_and_placebo_runs_enter_no_fit_or_evaluation": true,
+    "logical_active_bytes_are_not_assumed_equal_to_physical_hbm_traffic": true,
+    "one_coefficient_energy_proportionality_is_not_assumed": true,
+    "v1_requires_separate_profiler_anchors": true,
+    "v2_is_platform_and_representation_conditioned": true
+  }
+}

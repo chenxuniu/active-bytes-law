@@ -20,6 +20,8 @@ EXPECTED = {
     "dynamic.json": (9, 45),
     "ncu-anchors.json": (16, 48),
     "gh200-memory-placebo.json": (1, 3),
+    "gh200-primary-bf16.json": (9, 45),
+    "gh200-primary-bf16-evaluation.json": (6, 30),
 }
 
 
@@ -40,6 +42,18 @@ class CampaignTests(unittest.TestCase):
         one = json.dumps(expand_campaign(config), sort_keys=True, separators=(",", ":"))
         two = json.dumps(expand_campaign(config), sort_keys=True, separators=(",", ":"))
         self.assertEqual(one, two)
+
+    def test_gh200_primary_keeps_evaluation_in_a_separate_lock(self):
+        identification = expand_campaign(self.load("gh200-primary-bf16.json"))
+        evaluation = expand_campaign(
+            self.load("gh200-primary-bf16-evaluation.json")
+        )
+        self.assertNotIn(
+            "evaluation", {run["split"] for run in identification["run_order"]}
+        )
+        self.assertEqual(
+            {run["split"] for run in evaluation["run_order"]}, {"evaluation"}
+        )
 
     def test_pilot_declared_order_is_rotated_across_repeats(self):
         lock = expand_campaign(self.load("pilot.json"))

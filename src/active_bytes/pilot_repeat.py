@@ -406,7 +406,11 @@ def run_pilot_repeat(
         overall_reasons.append("repeat did not reach the frozen decode-duration target")
     return {
         "schema_version": 1,
-        "measurement": "frozen-pilot-decode-repeat",
+        "measurement": (
+            "frozen-pilot-decode-repeat"
+            if run["split"] in {"pilot", "placebo"}
+            else "frozen-static-decode-repeat"
+        ),
         "paper_candidate_measurement": True,
         "campaign_lock_sha256": lock["lock_sha256"],
         "run": {key: run[key] for key in ("run_id", "cell_id", "split", "repeat", "order")},
