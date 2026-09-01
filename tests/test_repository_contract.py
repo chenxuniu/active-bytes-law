@@ -46,6 +46,17 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(filename, contract.name)
         self.assertEqual(hashlib.sha256(contract.read_bytes()).hexdigest(), expected)
 
+    def test_addendum_sidecars_match(self):
+        addenda = ROOT / "configs" / "addenda"
+        for contract in addenda.glob("*.json"):
+            with self.subTest(contract=contract):
+                sidecar = contract.with_suffix(contract.suffix + ".sha256")
+                expected, filename = sidecar.read_text(encoding="utf-8").split()
+                self.assertEqual(filename, contract.name)
+                self.assertEqual(
+                    hashlib.sha256(contract.read_bytes()).hexdigest(), expected
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

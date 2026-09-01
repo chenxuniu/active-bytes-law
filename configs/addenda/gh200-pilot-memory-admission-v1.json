@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "addendum_id": "gh200-pilot-memory-admission-v1",
+  "created_utc": "2026-09-01T16:16:21Z",
+  "decision_stage": "before-p-c-energy-outcomes",
+  "source_campaign_lock": {
+    "path": "results/manifests/pilot.lock.json",
+    "lock_sha256": "38e8e60293bff021ebc5e0dfa40c8e77733daff1c8c9e01483c271e81757090b"
+  },
+  "scope": {
+    "accelerator": "NVIDIA GH200 144GB HBM3e",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "weight_dtype": "bf16",
+    "attention_backend": "FLASH_ATTN",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "does_not_modify_source_lock": true,
+    "does_not_authorize_fp8_energy": true
+  },
+  "pre_outcome_evidence": [
+    {
+      "geometry": {
+        "target_mean_attended_history_tokens": 16384,
+        "target_batch": 32,
+        "metered_decode_tokens_per_request": 1024
+      },
+      "gpu_memory_utilization": 0.5,
+      "energy_measurement": false,
+      "status": "execution-budget-failure-before-kv-allocation",
+      "observed_weight_gib": 14.25,
+      "observed_activation_peak_gib": 67.38,
+      "available_execution_budget_gib": 71.38,
+      "available_cuda_blocks": 0
+    },
+    {
+      "geometry": {
+        "target_mean_attended_history_tokens": 16384,
+        "target_batch": 32,
+        "metered_decode_tokens_per_request": 1024,
+        "prompt_length_counts": {
+          "15872": 16,
+          "15873": 16
+        }
+      },
+      "gpu_memory_utilization": 0.8,
+      "energy_measurement": false,
+      "status": "exact-batch-doctor-pass",
+      "observed_steps": 1025,
+      "metered_useful_tokens": 32768,
+      "mean_attended_history_tokens": 16384.0,
+      "decode_seconds": 34.050581251,
+      "qc_pass": true
+    }
+  ],
+  "capacity_calculation": {
+    "gpu_total_memory_gib": 142.75,
+    "weight_gib": 14.25,
+    "activation_peak_gib": 67.38,
+    "kv_bytes_per_historical_token": 57344,
+    "maximum_sequence_tokens": 16906,
+    "batch": 32,
+    "estimated_required_kv_gib": 28.89208984375,
+    "estimated_total_gib": 110.52208984375,
+    "selected_gpu_memory_utilization": 0.8,
+    "selected_budget_gib": 114.2,
+    "estimated_budget_slack_gib": 3.67791015625
+  },
+  "execution_policy": {
+    "p-a-l4096-b8-bf16": {
+      "gpu_memory_utilization": 0.5
+    },
+    "p-c-l16384-b32-bf16": {
+      "gpu_memory_utilization": 0.8
+    },
+    "same_geometry_dtype_pairs_must_use_the_same_gpu_memory_utilization": true,
+    "chunked_prefill": false,
+    "cpu_offload_gb": 0,
+    "swap_space_gb": 0,
+    "prefix_caching": false,
+    "speculation": false
+  },
+  "interpretation_firewall": {
+    "allocation_fraction_is_an_execution_reservation_not_an_active_bytes_term": true,
+    "cross_geometry_energy_claims_require_allocator_placebo": true,
+    "p_c_energy_may_be_collected_before_placebo_completion": true,
+    "p_c_energy_may_not_be_used_for_a_cross_geometry_claim_before_placebo_completion": true,
+    "failed_doctors_and_all_energy_attempts_must_be_retained": true
+  },
+  "allocator_placebo": {
+    "geometry": {
+      "target_mean_attended_history_tokens": 4096,
+      "target_batch": 8,
+      "kv_cache_dtype": "bf16"
+    },
+    "gpu_memory_utilization_values": [
+      0.5,
+      0.8
+    ],
+    "minimum_independent_repeats_per_value": 3,
+    "primary_metric": "gpu_board_joules_per_useful_token",
+    "maximum_acceptable_relative_shift": 0.03,
+    "decision_rule": "If the absolute relative shift exceeds 3%, do not interpret the mixed-reservation P-A/P-C contrast; rerun the compared cells under one common reservation fraction."
+  }
+}
