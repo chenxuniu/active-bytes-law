@@ -181,6 +181,7 @@ def run_checkpoint_load_audit(
     gpu_memory_utilization: float,
     seed: int,
     inference_image_digest: str | None,
+    compatibility_attention_backend: str | None = None,
 ) -> dict[str, Any]:
     if not 0 < gpu_memory_utilization < 1:
         raise ValueError("gpu memory utilization must be between zero and one")
@@ -199,8 +200,14 @@ def run_checkpoint_load_audit(
     expected_image = contract.get("runtime", {}).get("base_inference_image_digest")
     if not inference_image_digest or inference_image_digest != expected_image:
         raise ValueError("frozen inference image digest does not match the contract")
-    if os.environ.get("VLLM_ATTENTION_BACKEND") != "FLASHINFER":
-        raise ValueError("VLLM_ATTENTION_BACKEND must be FLASHINFER")
+    compatibility_mode = compatibility_attention_backend is not None
+    expected_backend = compatibility_attention_backend or "FLASHINFER"
+    if compatibility_mode and expected_backend != "XFORMERS":
+        raise ValueError("the only approved compatibility backend is XFORMERS")
+    if os.environ.get("VLLM_ATTENTION_BACKEND") != expected_backend:
+        raise ValueError(
+            f"VLLM_ATTENTION_BACKEND must be {expected_backend}"
+        )
 
     torch = importlib.import_module("torch")
     vllm = importlib.import_module("vllm")
@@ -264,7 +271,11 @@ def run_checkpoint_load_audit(
 
     return {
         "schema_version": 1,
-        "measurement": "frozen-vllm-fp8-kv-checkpoint-load-audit",
+        "measurement": (
+            "vllm-fp8-kv-checkpoint-load-compatibility-audit"
+            if compatibility_mode
+            else "frozen-vllm-fp8-kv-checkpoint-load-audit"
+        ),
         "non_paper_measurement": True,
         "may_enter_paper_outcomes": False,
         "energy_measurement": False,
@@ -282,6 +293,16 @@ def run_checkpoint_load_audit(
             "kv_cache_dtype": "fp8_e4m3",
             "calculate_kv_scales": False,
         },
+        "compatibility_contract": (
+            {
+                "candidate_attention_backend": expected_backend,
+                "purpose": "checkpoint-load-and-decode-feasibility-only",
+                "frozen_run_execution": False,
+                "requires_new_preregistration_before_energy_measurement": True,
+            }
+            if compatibility_mode
+            else None
+        ),
         "serialized_checkpoint": serialized,
         "cache": cache,
         "cache_contract": cache_contract,
@@ -301,6 +322,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-calibration-report-sha256", required=True)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.5)
     parser.add_argument("--seed", type=int, default=2027)
+    parser.add_argument(
+        "--compatibility-attention-backend",
+        choices=("XFORMERS",),
+        help=(
+            "run a non-paper backend feasibility probe without changing the "
+            "frozen calibration contract"
+        ),
+    )
     parser.add_argument("--output-json", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
@@ -313,12 +342,17 @@ def main(argv: list[str] | None = None) -> int:
             gpu_memory_utilization=args.gpu_memory_utilization,
             seed=args.seed,
             inference_image_digest=os.environ.get("TEL_INFERENCE_IMAGE_DIGEST"),
+            compatibility_attention_backend=args.compatibility_attention_backend,
         )
     except Exception as error:
         traceback.print_exc()
         report = {
             "schema_version": 1,
-            "measurement": "frozen-vllm-fp8-kv-checkpoint-load-audit",
+            "measurement": (
+                "vllm-fp8-kv-checkpoint-load-compatibility-audit"
+                if args.compatibility_attention_backend
+                else "frozen-vllm-fp8-kv-checkpoint-load-audit"
+            ),
             "non_paper_measurement": True,
             "may_enter_paper_outcomes": False,
             "energy_measurement": False,
