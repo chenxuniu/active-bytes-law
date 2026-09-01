@@ -94,3 +94,25 @@ python3 scripts/compare_kv_calibration_doctors.py \
 The comparison uses a relative scale tolerance of `1e-6` and an absolute
 tolerance of `1e-8`. A passing comparison is still non-paper evidence; it only
 qualifies the calibration pipeline for a separately locked full run.
+
+The first full calibration is frozen in
+`contracts/qwen2p5-7b-fp8-kv-v1.json`. The runner refuses a different image ID,
+package set, or qualification-artifact hash. It selects 512 records with seed
+2027, calibrates at 2048 tokens, verifies the original BF16 parameter probe,
+then saves and hashes a candidate checkpoint. The checkpoint is not eligible
+for an energy campaign until it passes a separate load audit in the frozen
+inference image.
+
+```bash
+python3 scripts/run_full_kv_calibration.py \
+  --contract calibration/contracts/qwen2p5-7b-fp8-kv-v1.json \
+  --checkpoint-output-dir /path/to/new-checkpoint-directory \
+  --source-revision FULL_40_HEX_GIT_REVISION \
+  --doctor-r01 /path/to/doctor-r01.json \
+  --doctor-r02 /path/to/doctor-r02.json \
+  --repeat-comparison /path/to/doctor-repeat-comparison.json \
+  --output-json /path/to/full-calibration-report.json
+```
+
+Set `TEL_CALIBRATION_IMAGE_ID` to the exact image ID named in the contract.
+Never run an energy collector during calibration or checkpoint hashing.

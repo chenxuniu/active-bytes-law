@@ -24,6 +24,7 @@ ab-run-batch-doctor = "active_bytes.batch_doctor:main"
 ab-validate-manifest = "active_bytes.artifacts:main"
 ab-run-kv-calibration-doctor = "active_bytes.kv_calibration:main"
 ab-compare-kv-calibration-doctors = "active_bytes.calibration_compare:main"
+ab-run-full-kv-calibration = "active_bytes.full_calibration:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

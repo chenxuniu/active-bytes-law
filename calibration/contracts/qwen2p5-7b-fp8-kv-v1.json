@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "contract_id": "qwen2p5-7b-fp8-kv-512x2048-v1",
+  "status": "frozen",
+  "purpose": "produce one candidate checkpoint with BF16 weights and calibrated tensor-wise FP8 K/V cache scales",
+  "paper_outcome_measurement": false,
+  "model": {
+    "id": "Qwen/Qwen2.5-7B-Instruct",
+    "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "weight_dtype": "bfloat16"
+  },
+  "dataset": {
+    "id": "HuggingFaceH4/ultrachat_200k",
+    "revision": "8049631c405ae6576f93f445c6b8166f76f5505a",
+    "split": "train_sft",
+    "selection": "full split deterministic shuffle then prefix selection",
+    "seed": 2027,
+    "num_calibration_samples": 512,
+    "max_sequence_length": 2048,
+    "tokenizer_padding": false,
+    "dataloader_pad_to_max_length": true,
+    "truncation": true,
+    "add_special_tokens": false
+  },
+  "recipe": {
+    "weights_quantized": false,
+    "kv_cache": {
+      "num_bits": 8,
+      "type": "float",
+      "strategy": "tensor",
+      "symmetric": true,
+      "dynamic": false,
+      "observer": "minmax"
+    }
+  },
+  "runtime": {
+    "calibration_image_tag": "token-energy-law-calibration:0.3",
+    "calibration_image_id": "sha256:2e80292507941b9958c3622ba8e5a0a059f19351b6a058a04731986d1cad4cba",
+    "base_inference_image_digest": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "packages": {
+      "llmcompressor": "0.6.0.1",
+      "compressed-tensors": "0.10.2",
+      "transformers": "4.52.4",
+      "datasets": "4.0.0",
+      "accelerate": "1.10.1",
+      "torch": "2.9.0a0+50eac811a6.nv25.9"
+    }
+  },
+  "expected_model_invariants": {
+    "attention_layers": 28,
+    "parameter_count": 339,
+    "logical_parameter_nbytes": 15231233024
+  },
+  "qualification_evidence": {
+    "doctor_r01": {
+      "sha256": "0e122c22d98fb96e964ead38e131d08067806ce1201fbff787a9e802c00a2a9d"
+    },
+    "doctor_r02": {
+      "sha256": "0e122c22d98fb96e964ead38e131d08067806ce1201fbff787a9e802c00a2a9d"
+    },
+    "repeat_comparison": {
+      "sha256": "cb30e64a3657fd85da84d65b585229136e15363c2195f0e047e6e7acd410ddff"
+    }
+  },
+  "promotion_gate": {
+    "checkpoint_is_candidate_only": true,
+    "requires_frozen_inference_image_load_audit": true,
+    "requires_nonunity_finite_positive_scales": true,
+    "requires_unchanged_bf16_weight_inventory": true,
+    "energy_measurement_allowed_during_calibration": false
+  }
+}

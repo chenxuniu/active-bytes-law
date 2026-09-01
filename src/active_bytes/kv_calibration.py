@@ -11,7 +11,7 @@ import math
 import re
 import traceback
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 from .decode_doctor import _atomic_write_json
 
@@ -171,6 +171,31 @@ def _package_versions() -> dict[str, str | None]:
     return versions
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(8 * 1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _checkpoint_manifest(root: Path) -> dict[str, Any]:
+    files = []
+    for path in sorted(candidate for candidate in root.rglob("*") if candidate.is_file()):
+        files.append(
+            {
+                "path": path.relative_to(root).as_posix(),
+                "bytes": path.stat().st_size,
+                "sha256": _file_sha256(path),
+            }
+        )
+    return {
+        "file_count": len(files),
+        "total_bytes": sum(row["bytes"] for row in files),
+        "files": files,
+    }
+
+
 def run_kv_calibration_doctor(
     *,
     model_id: str,
@@ -181,6 +206,8 @@ def run_kv_calibration_doctor(
     num_calibration_samples: int,
     max_sequence_length: int,
     seed: int,
+    checkpoint_output_dir: Path | None = None,
+    checkpoint_metadata: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     validate_revision(model_revision, label="model revision")
     validate_revision(dataset_revision, label="dataset revision")
@@ -294,12 +321,45 @@ def run_kv_calibration_doctor(
     if scales["all_unity"]:
         reasons.append("every calibrated K/V scale is still 1.0")
 
-    return {
+    checkpoint_saved = False
+    checkpoint: dict[str, Any] | None = None
+    if checkpoint_output_dir is not None:
+        if reasons:
+            reasons.append("checkpoint was not saved because calibration QC failed")
+        else:
+            if checkpoint_output_dir.exists():
+                raise FileExistsError(
+                    f"checkpoint output directory already exists: {checkpoint_output_dir}"
+                )
+            checkpoint_output_dir.mkdir(parents=True)
+            model.save_pretrained(
+                checkpoint_output_dir,
+                save_compressed=True,
+                safe_serialization=True,
+                max_shard_size="5GB",
+            )
+            tokenizer.save_pretrained(checkpoint_output_dir)
+            if checkpoint_metadata is not None:
+                _atomic_write_json(
+                    checkpoint_output_dir / "calibration-contract.json",
+                    checkpoint_metadata,
+                )
+            checkpoint = {
+                "output_dir": str(checkpoint_output_dir),
+                **_checkpoint_manifest(checkpoint_output_dir),
+            }
+            checkpoint_saved = True
+
+    report = {
         "schema_version": 1,
-        "measurement": "offline-fp8-kv-calibration-doctor",
+        "measurement": (
+            "offline-fp8-kv-full-calibration"
+            if checkpoint_output_dir is not None
+            else "offline-fp8-kv-calibration-doctor"
+        ),
         "non_paper_measurement": True,
         "may_enter_paper_outcomes": False,
-        "checkpoint_saved": False,
+        "checkpoint_saved": checkpoint_saved,
         "model": {"id": model_id, "revision": model_revision},
         "dataset": {
             "id": dataset_id,
@@ -342,6 +402,9 @@ def run_kv_calibration_doctor(
         "qc_reasons": reasons,
         "qc_pass": not reasons,
     }
+    if checkpoint is not None:
+        report["checkpoint"] = checkpoint
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:
