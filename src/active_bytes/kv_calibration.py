@@ -19,6 +19,7 @@ from .decode_doctor import _atomic_write_json
 PINNED_DATASET_REVISION = "8049631c405ae6576f93f445c6b8166f76f5505a"
 REVISION = re.compile(r"^[0-9a-f]{40}$")
 KV_STATE_SUFFIXES = {"k_scale", "v_scale", "k_zero_point", "v_zero_point"}
+KV_OBSERVER = "minmax"
 
 
 def validate_revision(value: str, *, label: str) -> str:
@@ -250,7 +251,7 @@ def run_kv_calibration_doctor(
         strategy="tensor",
         symmetric=True,
         dynamic=False,
-        observer="static_minmax",
+        observer=KV_OBSERVER,
     )
     recipe = modifiers.QuantizationModifier(kv_cache_scheme=fp8_args)
     model = llmcompressor.oneshot(
@@ -326,7 +327,7 @@ def run_kv_calibration_doctor(
                 "strategy": "tensor",
                 "symmetric": True,
                 "dynamic": False,
-                "observer": "static_minmax",
+                "observer": KV_OBSERVER,
             },
         },
         "baseline_parameters_before": {

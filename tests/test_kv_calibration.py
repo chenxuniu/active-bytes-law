@@ -5,6 +5,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from active_bytes.kv_calibration import (  # noqa: E402
+    KV_OBSERVER,
     calibration_sample_digest,
     kv_scale_report,
     validate_revision,
@@ -12,6 +13,9 @@ from active_bytes.kv_calibration import (  # noqa: E402
 
 
 class KVCalibrationTests(unittest.TestCase):
+    def test_locked_compressor_uses_registered_minmax_observer_name(self):
+        self.assertEqual(KV_OBSERVER, "minmax")
+
     def test_revision_requires_full_lowercase_commit(self):
         revision = "a" * 40
         self.assertEqual(validate_revision(revision, label="test"), revision)
