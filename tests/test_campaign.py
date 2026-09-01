@@ -19,6 +19,7 @@ EXPECTED = {
     "llama-holdout.json": (12, 60),
     "dynamic.json": (9, 45),
     "ncu-anchors.json": (16, 48),
+    "gh200-memory-placebo.json": (1, 3),
 }
 
 

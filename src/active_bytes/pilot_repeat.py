@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import math
 import os
 import time
 from pathlib import Path
@@ -208,6 +209,16 @@ def run_pilot_repeat(
     lock = json.loads(campaign_lock.read_text(encoding="utf-8"))
     run = _locked_run(lock, run_id)
     parameters = run["parameters"]
+    locked_gpu_memory_utilization = parameters.get("gpu_memory_utilization")
+    if locked_gpu_memory_utilization is not None and not math.isclose(
+        float(locked_gpu_memory_utilization),
+        gpu_memory_utilization,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise ValueError(
+            "gpu_memory_utilization does not match the frozen run contract"
+        )
     batch = int(parameters["target_batch"])
     measured = int(parameters["metered_decode_tokens_per_request"])
     target_mean = int(parameters["target_mean_attended_history_tokens"])
@@ -406,6 +417,7 @@ def run_pilot_repeat(
             "weight_dtype": "bfloat16",
             "declared_kv_cache_dtype": declared_kv_dtype,
             "requested_kv_cache_dtype": requested_kv_dtype,
+            "gpu_memory_utilization": gpu_memory_utilization,
         },
         "geometry": {
             "batch": batch,

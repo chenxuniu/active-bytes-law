@@ -13,7 +13,7 @@ repo_root=${TEL_REPO_ROOT:-/srv/token-energy-law/repo}
 results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
 hf_cache=${TEL_HF_CACHE:-/srv/token-energy-law/hf-cache}
 container_home=${TEL_CONTAINER_HOME:-/srv/token-energy-law/container-home}
-campaign_lock="$repo_root/results/manifests/pilot.lock.json"
+campaign_lock=${TEL_CAMPAIGN_LOCK:-$repo_root/results/manifests/pilot.lock.json}
 allocation_addendum="$repo_root/configs/addenda/gh200-pilot-memory-admission-v1.json"
 
 for path in "$campaign_lock" "$allocation_addendum"; do
@@ -46,6 +46,14 @@ PY
 
 IFS=$'\t' read -r cell_id target_mean target_batch kv_dtype attention_backend image <<<"$run_contract"
 
+case "$campaign_lock" in
+  "$repo_root"/*) campaign_lock_relative=${campaign_lock#"$repo_root"/} ;;
+  *)
+    echo "campaign lock must be inside the repository: $campaign_lock" >&2
+    exit 65
+    ;;
+esac
+
 if [[ "$kv_dtype" != "bf16" ]]; then
   echo "this orchestrator refuses FP8 pilot energy until a promoted runtime exists" >&2
   exit 65
@@ -56,6 +64,25 @@ if [[ "$cell_id" == "p-c-l16384-b32-bf16" && "$gpu_memory_utilization" != "0.8" 
 fi
 if [[ "$cell_id" == "p-a-l4096-b8-bf16" && "$gpu_memory_utilization" != "0.5" && "$gpu_memory_utilization" != "0.50" ]]; then
   echo "P-A frozen pilot repeats require gpu_memory_utilization=0.50" >&2
+  exit 65
+fi
+
+locked_utilization=$(python3 - "$campaign_lock" "$run_id" <<'PY'
+import json
+import sys
+lock = json.load(open(sys.argv[1], encoding="utf-8"))
+run = next(row for row in lock["run_order"] if row["run_id"] == sys.argv[2])
+value = run["parameters"].get("gpu_memory_utilization")
+print("" if value is None else value)
+PY
+)
+if [[ -n "$locked_utilization" ]] && ! python3 - "$locked_utilization" "$gpu_memory_utilization" <<'PY'
+import math
+import sys
+raise SystemExit(0 if math.isclose(float(sys.argv[1]), float(sys.argv[2]), rel_tol=0.0, abs_tol=1e-12) else 1)
+PY
+then
+  echo "gpu_memory_utilization does not match the campaign lock" >&2
   exit 65
 fi
 
@@ -108,7 +135,7 @@ sudo docker run --rm \
   --entrypoint python3 \
   "$image" \
   /workspace/active-bytes-law/scripts/run_pilot_repeat.py \
-  --campaign-lock /workspace/active-bytes-law/results/manifests/pilot.lock.json \
+  --campaign-lock "/workspace/active-bytes-law/$campaign_lock_relative" \
   --run-id "$run_id" \
   --gpu-memory-utilization "$gpu_memory_utilization" \
   --ready-file "/workspace/results/$relative_attempt/engine.ready.json" \
