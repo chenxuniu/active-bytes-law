@@ -84,11 +84,10 @@ PY
       ncu --version
       metric_inventory=$(ncu --query-metrics-mode suffix \
         --metrics dram__bytes_read,dram__bytes_write)
-      printf "%s\n" "$metric_inventory"
-      compact_inventory=$(printf "%s\n" "$metric_inventory" \
-        | sed -E "s/^[[:space:]]+//; s/[[:space:]]+$//")
-      grep -Fx "dram__bytes_read.sum" <<<"$compact_inventory"
-      grep -Fx "dram__bytes_write.sum" <<<"$compact_inventory"
+      metric_names=$(printf "%s\n" "$metric_inventory" \
+        | awk "\$1 ~ /^dram__bytes_(read|write)\./ {print \$1}")
+      grep -Fx "dram__bytes_read.sum" <<<"$metric_names"
+      grep -Fx "dram__bytes_write.sum" <<<"$metric_names"
       echo "dram_metric_contract=pass"
       ncu \
         --target-processes all \
