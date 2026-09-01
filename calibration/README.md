@@ -78,3 +78,19 @@ Do not promote the short doctor to the full calibration simply by changing its
 arguments. The full 512-sample, 2048-token checkpoint requires a separately
 recorded execution contract and a post-save load audit in the frozen inference
 image.
+
+Run the short doctor twice under the same contract before opening the full
+calibration. Compare the two complete JSON artifacts, including the rendered
+sample digest, package contract, baseline-parameter probe, layer membership,
+and all 56 K/V scale values:
+
+```bash
+python3 scripts/compare_kv_calibration_doctors.py \
+  --first-json /path/to/doctor-r01.json \
+  --second-json /path/to/doctor-r02.json \
+  --output-json /path/to/doctor-repeat-comparison.json
+```
+
+The comparison uses a relative scale tolerance of `1e-6` and an absolute
+tolerance of `1e-8`. A passing comparison is still non-paper evidence; it only
+qualifies the calibration pipeline for a separately locked full run.
