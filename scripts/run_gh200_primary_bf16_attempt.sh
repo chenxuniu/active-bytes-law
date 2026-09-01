@@ -8,6 +8,10 @@ fi
 
 run_order=$1
 gpu_index=${2:-0}
+if [[ "$gpu_index" != "0" ]]; then
+  echo "the frozen GH200 primary campaign is bound to GPU index 0" >&2
+  exit 64
+fi
 if [[ ! "$run_order" =~ ^[0-9]+$ ]] || (( run_order < 0 || run_order >= 45 )); then
   echo "RUN_ORDER must be an integer from 0 through 44" >&2
   exit 64

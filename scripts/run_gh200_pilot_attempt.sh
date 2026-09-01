@@ -52,11 +52,12 @@ print("\t".join([
     p["kv_cache_dtype"],
     p["attention_backend"],
     p["container_image"],
+    str(p.get("power_limit_w", "")),
 ]))
 PY
 ) || exit $?
 
-IFS=$'\t' read -r cell_id target_mean target_batch kv_dtype attention_backend image <<<"$run_contract"
+IFS=$'\t' read -r cell_id target_mean target_batch kv_dtype attention_backend image locked_power_limit_w <<<"$run_contract"
 
 case "$campaign_lock" in
   "$repo_root"/*) campaign_lock_relative=${campaign_lock#"$repo_root"/} ;;
@@ -96,6 +97,24 @@ PY
 then
   echo "gpu_memory_utilization does not match the campaign lock" >&2
   exit 65
+fi
+
+if [[ -n "$locked_power_limit_w" ]]; then
+  observed_power_limit_w=$(nvidia-smi -i "$gpu_index" \
+    --query-gpu=power.limit --format=csv,noheader,nounits)
+  if ! python3 - "$locked_power_limit_w" "$observed_power_limit_w" <<'PY'
+import math
+import sys
+raise SystemExit(
+    0
+    if math.isclose(float(sys.argv[1]), float(sys.argv[2]), rel_tol=0.0, abs_tol=0.01)
+    else 1
+)
+PY
+  then
+    echo "GPU power limit does not match the frozen run contract: expected ${locked_power_limit_w} W, observed ${observed_power_limit_w} W" >&2
+    exit 65
+  fi
 fi
 
 locked_addendum_sha=$(python3 - "$campaign_lock" "$run_id" <<'PY'
