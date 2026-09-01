@@ -192,7 +192,13 @@ def _field_power_w(field: Any, *, label: str) -> float:
     return float(field.value.uiVal) / 1000.0
 
 
-def collect_scoped_samples(*, duration_seconds: float, interval_seconds: float) -> list[dict[str, Any]]:
+def collect_scoped_samples(
+    *,
+    duration_seconds: float,
+    interval_seconds: float,
+    stop_file: Path | None = None,
+    ready_file: Path | None = None,
+) -> list[dict[str, Any]]:
     """Collect synchronized GPU- and module-scope power from every visible GPU."""
 
     if duration_seconds <= 0 or interval_seconds <= 0:
@@ -221,6 +227,8 @@ def collect_scoped_samples(*, duration_seconds: float, interval_seconds: float) 
             now = time.monotonic()
             if now < next_sample:
                 time.sleep(next_sample - now)
+            if stop_file is not None and stop_file.exists() and sequence > 1:
+                break
             if time.monotonic() > deadline and sequence > 0:
                 break
             for gpu_index, handle in enumerate(handles):
@@ -256,6 +264,20 @@ def collect_scoped_samples(*, duration_seconds: float, interval_seconds: float) 
                     }
                 )
             sequence += 1
+            if ready_file is not None and sequence == 1:
+                ready_file.parent.mkdir(parents=True, exist_ok=True)
+                ready_file.write_text(
+                    json.dumps(
+                        {
+                            "schema_version": 1,
+                            "state": "TELEMETRY_READY",
+                            "first_sample_monotonic_ns": samples[0]["monotonic_ns"],
+                        },
+                        sort_keys=True,
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
             next_sample = start + sequence * interval_seconds
         return samples
     finally:
@@ -275,12 +297,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--interval-ms", type=float, default=100.0)
     parser.add_argument("--maximum-gap-ms", type=float, default=250.0)
     parser.add_argument("--module-counter-error-limit", type=float, default=0.02)
+    parser.add_argument(
+        "--stop-file",
+        type=Path,
+        help="stop after this file appears; duration remains a safety deadline",
+    )
+    parser.add_argument(
+        "--ready-file",
+        type=Path,
+        help="write a readiness record after the first complete scoped sample",
+    )
     parser.add_argument("--output-jsonl", required=True, type=Path)
     parser.add_argument("--summary-json", required=True, type=Path)
     args = parser.parse_args(argv)
     samples = collect_scoped_samples(
         duration_seconds=args.duration_seconds,
         interval_seconds=args.interval_ms / 1000.0,
+        stop_file=args.stop_file,
+        ready_file=args.ready_file,
     )
     report = summarize_scoped_samples(
         samples,

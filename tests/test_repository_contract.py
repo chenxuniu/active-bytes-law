@@ -20,9 +20,12 @@ class RepositoryContractTests(unittest.TestCase):
                     json.loads(path.read_text())
 
     def test_preflight_shell_syntax(self):
-        subprocess.run(
-            ["bash", "-n", str(ROOT / "scripts" / "collect_preflight.sh")], check=True
-        )
+        for script in (
+            ROOT / "scripts" / "collect_preflight.sh",
+            ROOT / "scripts" / "run_gh200_pilot_attempt.sh",
+        ):
+            with self.subTest(script=script):
+                subprocess.run(["bash", "-n", str(script)], check=True)
 
     def test_calibration_requirements_are_fully_pinned(self):
         requirements = (
