@@ -26,6 +26,7 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "scripts" / "run_gh200_memory_placebo_attempt.sh",
             ROOT / "scripts" / "run_gh200_primary_bf16_attempt.sh",
             ROOT / "scripts" / "check_gh200_profiler_preflight.sh",
+            ROOT / "scripts" / "run_gh200_v1_anchor_attempt.sh",
         ):
             with self.subTest(script=script):
                 subprocess.run(["bash", "-n", str(script)], check=True)

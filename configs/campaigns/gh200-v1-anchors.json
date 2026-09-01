@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "campaign_id": "token-energy-law-gh200-bf16-v1-traffic-anchors-v1",
+  "seed": 20260903,
+  "randomize_cell_order": true,
+  "defaults": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "model_id": "qwen2p5-7b",
+    "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "accelerator_class": "NVIDIA GH200 144GB HBM3e",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "driver_version": "580.173.02",
+    "attention_backend": "FLASH_ATTN",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "requested_api_output_tokens": 2,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 1,
+    "profiled_decode_iterations": 1,
+    "nvtx_range": "activebytes_decode",
+    "profiler_replay_mode": "range",
+    "profiler_cache_control": "none",
+    "profiler_clock_control": "none",
+    "profiler_metrics": [
+      "dram__bytes_read.sum",
+      "dram__bytes_write.sum"
+    ],
+    "profiler_preflight_sha256": "9b1348cfbb61cf5a11c2886e5058ea8e4b9cdb2d701960677995ba1e39db93a6",
+    "gpu_memory_utilization": 0.8,
+    "power_limit_w": 700,
+    "prefix_cache": false,
+    "speculative_decode": false,
+    "chunked_prefill": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "execution_addendum_sha256": "21e50eefa121c0cc9f7cf4fe776025fa15bb5035c372c164af2f5bc6c9c492ff",
+    "energy_measurement": false,
+    "profiler_domain": "v1-mechanism-only",
+    "repetitions": 5
+  },
+  "blocks": [
+    {
+      "block_id": "gh200-qwen-bf16-v1-anchors",
+      "split": "profiler-anchor",
+      "cells": [
+        {"cell_id": "gh-v1-l4096-b4", "target_mean_attended_history_tokens": 4096, "target_batch": 4},
+        {"cell_id": "gh-v1-l4096-b8", "target_mean_attended_history_tokens": 4096, "target_batch": 8},
+        {"cell_id": "gh-v1-l4096-b16", "target_mean_attended_history_tokens": 4096, "target_batch": 16},
+        {"cell_id": "gh-v1-l4096-b32", "target_mean_attended_history_tokens": 4096, "target_batch": 32},
+        {"cell_id": "gh-v1-l8192-b4", "target_mean_attended_history_tokens": 8192, "target_batch": 4},
+        {"cell_id": "gh-v1-l8192-b8", "target_mean_attended_history_tokens": 8192, "target_batch": 8},
+        {"cell_id": "gh-v1-l8192-b16", "target_mean_attended_history_tokens": 8192, "target_batch": 16},
+        {"cell_id": "gh-v1-l8192-b32", "target_mean_attended_history_tokens": 8192, "target_batch": 32},
+        {"cell_id": "gh-v1-l16384-b4", "target_mean_attended_history_tokens": 16384, "target_batch": 4},
+        {"cell_id": "gh-v1-l16384-b8", "target_mean_attended_history_tokens": 16384, "target_batch": 8},
+        {"cell_id": "gh-v1-l16384-b16", "target_mean_attended_history_tokens": 16384, "target_batch": 16},
+        {"cell_id": "gh-v1-l16384-b32", "target_mean_attended_history_tokens": 16384, "target_batch": 32}
+      ]
+    }
+  ]
+}

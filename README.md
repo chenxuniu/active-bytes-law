@@ -105,10 +105,15 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `llama-holdout.json` | architecture holdout | 12 | 5 |
 | `dynamic.json` | realized-state validation | 9 | 5 |
 | `ncu-anchors.json` | physical-traffic mechanism anchors | 16 | 3 |
+| `gh200-v1-anchors.json` | frozen GH200 BF16 V1 range-replay anchors | 12 | 5 |
+| `gh200-primary-bf16.json` | GH200 BF16 coefficient/discrepancy identification | 9 | 5 |
+| `gh200-primary-bf16-evaluation.json` | separately sealed GH200 BF16 evaluation | 6 | 5 |
 
-The energy campaign contains 65 non-pilot cells and 325 independent repeat
-records before preregistered reruns. NCU runs are paired diagnostics and never
-enter the primary energy or latency estimates.
+The older generic grids remain design provenance.  The currently executable
+primary path is the checksummed GH200 BF16 V1/identification/evaluation set
+above.  NCU runs are mechanism measurements and never enter the primary energy
+or latency estimates; evaluation remains sealed until the identification fit
+and discrepancy envelope are frozen.
 
 ## Data policy
 
