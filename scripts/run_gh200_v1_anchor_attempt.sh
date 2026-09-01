@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 1 || $# -gt 2 ]]; then
-  echo "usage: $0 RUN_ORDER [GPU_INDEX]" >&2
+if [[ $# -lt 1 || $# -gt 3 ]]; then
+  echo "usage: $0 RUN_ORDER [GPU_INDEX] [ORDER_POLICY]" >&2
   exit 64
 fi
 
 run_order=$1
 gpu_index=${2:-0}
+order_policy=${3:-strict}
+if [[ "$order_policy" != "strict" && "$order_policy" != "recorded-gaps" ]]; then
+  echo "ORDER_POLICY must be strict or recorded-gaps" >&2
+  exit 64
+fi
 if [[ "$gpu_index" != "0" ]]; then
   echo "the frozen GH200 V1 anchor campaign is bound to GPU index 0" >&2
   exit 64
@@ -130,17 +135,51 @@ raise SystemExit(1)
 PY
 }
 
+recorded_batch_failure_exists() {
+  python3 - "$1" "$2" "$3" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+expected_run_id = sys.argv[2]
+expected_campaign_sha = sys.argv[3]
+for path in root.glob("batch-failure-*.json"):
+    try:
+        report = json.loads(path.read_text(encoding="utf-8"))
+        if (
+            report.get("measurement") == "gh200-v1-recorded-batch-failure"
+            and report.get("run_id") == expected_run_id
+            and report.get("campaign_lock_sha256") == expected_campaign_sha
+        ):
+            raise SystemExit(0)
+    except (OSError, ValueError):
+        pass
+raise SystemExit(1)
+PY
+}
+
 current_dir="$results_root/$result_domain/$run_id"
 if accepted_attempt_exists "$current_dir" "$run_id" "$locked_campaign_sha"; then
   echo "run order $run_order already has an accepted attempt: $run_id" >&2
   exit 65
 fi
-if [[ -n "$previous_run_id" ]] && ! accepted_attempt_exists \
-  "$results_root/$result_domain/$previous_run_id" \
-  "$previous_run_id" \
-  "$locked_campaign_sha"; then
-  echo "previous frozen V1 run is not yet accepted: $previous_run_id" >&2
-  exit 65
+if [[ -n "$previous_run_id" ]]; then
+  previous_run_root="$results_root/$result_domain/$previous_run_id"
+  if ! accepted_attempt_exists \
+    "$previous_run_root" \
+    "$previous_run_id" \
+    "$locked_campaign_sha"; then
+    if [[ "$order_policy" == "recorded-gaps" ]] && recorded_batch_failure_exists \
+      "$previous_run_root" \
+      "$previous_run_id" \
+      "$locked_campaign_sha"; then
+      echo "previous frozen V1 run has a recorded batch failure; continuing with an explicit execution gap: $previous_run_id" >&2
+    else
+      echo "previous frozen V1 run is neither accepted nor an explicitly recorded batch failure: $previous_run_id" >&2
+      exit 65
+    fi
+  fi
 fi
 
 tag=$(date -u +%Y%m%dT%H%M%SZ)
@@ -154,6 +193,7 @@ runner_log="$attempt_dir/runner.log"
 ncu_report_prefix="/workspace/results/$relative_attempt/anchor-profile"
 
 git -C "$repo_root" rev-parse HEAD >"$attempt_dir/repository.commit.txt"
+printf '%s\n' "$order_policy" >"$attempt_dir/order.policy.txt"
 sha256sum \
   "$campaign_lock" \
   "$execution_addendum" \

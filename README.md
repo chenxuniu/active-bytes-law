@@ -117,8 +117,11 @@ and discrepancy envelope are frozen.
 
 After validating the first V1 sweep manually, run a resumable inclusive range
 with `scripts/run_gh200_v1_anchor_batch.sh START_ORDER END_ORDER 0`. The driver
-skips accepted attempts, preserves the frozen order, and stops on the first
-failed or missing-QC result. Valid order values are 0 through 59.
+skips accepted attempts and records run-specific failures before continuing
+with an explicit execution gap. Infrastructure or contract failures that occur
+before an attempt directory exists still abort the batch. Every invocation has
+a persistent batch log and JSON summary. Re-running the same range skips accepted
+outcomes and retries missing ones. Valid order values are 0 through 59.
 
 ## Data policy
 
