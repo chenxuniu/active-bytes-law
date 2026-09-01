@@ -59,6 +59,7 @@ print(",".join(p["profiler_metrics"]))
 print(p["profiler_replay_mode"])
 print(p["profiler_replay_amendment_sha256"])
 print(p["execution_addendum_sha256"])
+print(lock["lock_sha256"])
 if order > 0:
     print(next(row for row in lock["run_order"] if row["order"] == order - 1)["run_id"])
 else:
@@ -76,7 +77,8 @@ metrics=${resolved[6]}
 profiler_replay_mode=${resolved[7]}
 locked_profiler_amendment_sha=${resolved[8]}
 locked_addendum_sha=${resolved[9]}
-previous_run_id=${resolved[10]}
+locked_campaign_sha=${resolved[10]}
+previous_run_id=${resolved[11]}
 
 if [[ "$profiler_replay_mode" != "app-range" ]]; then
   echo "V1 profiler replay mode must be app-range after the frozen amendment" >&2
@@ -106,14 +108,21 @@ then
 fi
 
 accepted_attempt_exists() {
-  python3 - "$1" <<'PY'
+  python3 - "$1" "$2" "$3" <<'PY'
 import json
 import pathlib
 import sys
 root = pathlib.Path(sys.argv[1])
+expected_run_id = sys.argv[2]
+expected_campaign_sha = sys.argv[3]
 for path in root.glob("attempt-*/traffic.json"):
     try:
-        if json.loads(path.read_text(encoding="utf-8")).get("qc_pass") is True:
+        report = json.loads(path.read_text(encoding="utf-8"))
+        if (
+            report.get("qc_pass") is True
+            and report.get("run", {}).get("run_id") == expected_run_id
+            and report.get("campaign_lock_sha256") == expected_campaign_sha
+        ):
             raise SystemExit(0)
     except (OSError, ValueError):
         pass
@@ -122,12 +131,14 @@ PY
 }
 
 current_dir="$results_root/$result_domain/$run_id"
-if accepted_attempt_exists "$current_dir"; then
+if accepted_attempt_exists "$current_dir" "$run_id" "$locked_campaign_sha"; then
   echo "run order $run_order already has an accepted attempt: $run_id" >&2
   exit 65
 fi
 if [[ -n "$previous_run_id" ]] && ! accepted_attempt_exists \
-  "$results_root/$result_domain/$previous_run_id"; then
+  "$results_root/$result_domain/$previous_run_id" \
+  "$previous_run_id" \
+  "$locked_campaign_sha"; then
   echo "previous frozen V1 run is not yet accepted: $previous_run_id" >&2
   exit 65
 fi

@@ -115,6 +115,11 @@ above.  NCU runs are mechanism measurements and never enter the primary energy
 or latency estimates; evaluation remains sealed until the identification fit
 and discrepancy envelope are frozen.
 
+After validating the first V1 sweep manually, run a resumable inclusive range
+with `scripts/run_gh200_v1_anchor_batch.sh START_ORDER END_ORDER 0`. The driver
+skips accepted attempts, preserves the frozen order, and stops on the first
+failed or missing-QC result. Valid order values are 0 through 59.
+
 ## Data policy
 
 Git stores configs, lock files, sanitized manifests, cell-level summaries,

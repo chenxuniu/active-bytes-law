@@ -27,9 +27,23 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "scripts" / "run_gh200_primary_bf16_attempt.sh",
             ROOT / "scripts" / "check_gh200_profiler_preflight.sh",
             ROOT / "scripts" / "run_gh200_v1_anchor_attempt.sh",
+            ROOT / "scripts" / "run_gh200_v1_anchor_batch.sh",
         ):
             with self.subTest(script=script):
                 subprocess.run(["bash", "-n", str(script)], check=True)
+
+    def test_v1_batch_driver_rejects_invalid_ranges_and_gpu(self):
+        script = ROOT / "scripts" / "run_gh200_v1_anchor_batch.sh"
+        for arguments in (("12", "60", "0"), ("13", "12", "0"), ("12", "59", "1")):
+            with self.subTest(arguments=arguments):
+                completed = subprocess.run(
+                    [str(script), *arguments],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 64)
 
     def test_calibration_requirements_are_fully_pinned(self):
         requirements = (
