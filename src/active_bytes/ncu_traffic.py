@@ -25,13 +25,36 @@ def _sha256(path: Path) -> str:
 
 def parse_ncu_csv(path: Path) -> dict[str, float]:
     rows = list(csv.reader(path.read_text(encoding="utf-8").splitlines()))
-    header_index = None
+    long_header_index = None
     for index, row in enumerate(rows):
         if "Metric Name" in row and "Metric Value" in row:
-            header_index = index
+            long_header_index = index
             break
-    if header_index is None:
-        raise ValueError("NCU CSV has no metric header")
+    if long_header_index is not None:
+        return _parse_long_csv(rows, long_header_index)
+
+    wide_header_index = None
+    for index, row in enumerate(rows):
+        if all(metric in row for metric in METRICS):
+            wide_header_index = index
+            break
+    if wide_header_index is not None:
+        return _parse_wide_csv(rows, wide_header_index)
+    raise ValueError("NCU CSV has neither a long-form nor a wide-form metric header")
+
+
+def _numeric_metric_value(metric: str, text: str) -> float:
+    normalized = text.replace(",", "").strip()
+    try:
+        value = float(normalized)
+    except ValueError as exc:
+        raise ValueError(f"{metric} has invalid value {normalized!r}") from exc
+    if value < 0:
+        raise ValueError(f"{metric} is negative")
+    return value
+
+
+def _parse_long_csv(rows: list[list[str]], header_index: int) -> dict[str, float]:
     header = rows[header_index]
     metric_index = header.index("Metric Name")
     value_index = header.index("Metric Value")
@@ -45,20 +68,45 @@ def parse_ncu_csv(path: Path) -> dict[str, float]:
             continue
         if row[unit_index] != "byte":
             raise ValueError(f"{metric} has non-byte unit {row[unit_index]!r}")
-        text = row[value_index].replace(",", "").strip()
-        try:
-            value = float(text)
-        except ValueError as exc:
-            raise ValueError(f"{metric} has invalid value {text!r}") from exc
-        if value < 0:
-            raise ValueError(f"{metric} is negative")
-        found[metric].append(value)
+        found[metric].append(_numeric_metric_value(metric, row[value_index]))
     for metric, values in found.items():
         if len(values) != 1:
             raise ValueError(
                 f"expected one range-level value for {metric}; observed {len(values)}"
             )
     return {metric: values[0] for metric, values in found.items()}
+
+
+def _parse_wide_csv(rows: list[list[str]], header_index: int) -> dict[str, float]:
+    header = rows[header_index]
+    indices = {metric: header.index(metric) for metric in METRICS}
+    maximum_index = max(indices.values())
+    byte_unit_row_seen = False
+    observations: list[dict[str, float]] = []
+    for row in rows[header_index + 1 :]:
+        if len(row) <= maximum_index:
+            continue
+        fields = {metric: row[index].strip() for metric, index in indices.items()}
+        if all(value == "byte" for value in fields.values()):
+            byte_unit_row_seen = True
+            continue
+        if not any(fields.values()):
+            continue
+        if not all(fields.values()):
+            raise ValueError("wide-form NCU row has an incomplete metric pair")
+        observations.append(
+            {
+                metric: _numeric_metric_value(metric, fields[metric])
+                for metric in METRICS
+            }
+        )
+    if not byte_unit_row_seen:
+        raise ValueError("wide-form NCU CSV has no byte-unit row")
+    if len(observations) != 1:
+        raise ValueError(
+            f"expected one range-level wide-form metric row; observed {len(observations)}"
+        )
+    return observations[0]
 
 
 def build_traffic_report(anchor_json: Path, ncu_csv: Path) -> dict[str, Any]:

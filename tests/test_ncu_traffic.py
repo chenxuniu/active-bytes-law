@@ -16,6 +16,13 @@ HEADER = (
     '"0","dram__bytes_write.sum","byte","512"\n'
 )
 
+WIDE = (
+    '==PROF== Report: anchor-profile.ncu-rep\n'
+    '"ID","Kernel Name","dram__bytes_read.sum","dram__bytes_write.sum"\n'
+    '"","","byte","byte"\n'
+    '"0","range","17,929,076,224","113,921,792"\n'
+)
+
 
 class NcuTrafficTests(unittest.TestCase):
     def test_parse_single_range_metrics(self):
@@ -32,6 +39,25 @@ class NcuTrafficTests(unittest.TestCase):
             path = Path(temporary) / "ncu.csv"
             path.write_text(HEADER + '"1","dram__bytes_read.sum","byte","3"\n')
             with self.assertRaisesRegex(ValueError, "expected one range-level"):
+                parse_ncu_csv(path)
+
+    def test_parse_single_application_range_wide_row(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "ncu.csv"
+            path.write_text(WIDE)
+            self.assertEqual(
+                parse_ncu_csv(path),
+                {
+                    "dram__bytes_read.sum": 17929076224.0,
+                    "dram__bytes_write.sum": 113921792.0,
+                },
+            )
+
+    def test_multiple_wide_range_rows_are_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "ncu.csv"
+            path.write_text(WIDE + '"1","range","1","2"\n')
+            with self.assertRaisesRegex(ValueError, "one range-level wide-form"):
                 parse_ncu_csv(path)
 
     def test_traffic_report_uses_useful_token_denominator(self):
