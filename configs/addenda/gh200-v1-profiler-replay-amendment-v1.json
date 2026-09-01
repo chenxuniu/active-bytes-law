@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "amendment_id": "gh200-v1-profiler-replay-amendment-v1",
+  "amended_before_any_accepted_v1_traffic_outcome": true,
+  "amendment_date_utc": "2026-09-01",
+  "previous_campaign_id": "token-energy-law-gh200-bf16-v1-traffic-anchors-v1",
+  "previous_lock_sha256": "40a806b5cecfad51268afcc0882dddc4784ada908cd193c7814d6ff210b2457d",
+  "failed_run": {
+    "run_order": 0,
+    "run_id": "ab1-profiler-anchor-gh-v1-l8192-b8-r01",
+    "attempt": "attempt-20260901T193000Z",
+    "runner_return_code": 9,
+    "anchor_json_produced": false,
+    "traffic_json_produced": false,
+    "ncu_error": "Cannot capture API call for CUDA event recorded outside the range (cuEventQuery)",
+    "ncu_capture_status": "RecordStatusUnsupportedApi"
+  },
+  "change": {
+    "field": "profiler_replay_mode",
+    "previous": "range",
+    "replacement": "app-range",
+    "unchanged_fields": [
+      "model and revision",
+      "container image digest",
+      "driver version",
+      "attention backend",
+      "weight and KV cache dtypes",
+      "GPU identity and power limit",
+      "cell grid and randomized run order",
+      "repeat count",
+      "NVTX range",
+      "profiled decode iteration count",
+      "profiler metrics",
+      "cache control",
+      "clock control"
+    ]
+  },
+  "rationale": "Range replay captures CUDA API state and cannot replay this vLLM CUDA Graph path because cuEventQuery observes an event recorded before the NVTX range. Application-range replay profiles the same NVTX-selected workload without API capture by relaunching the deterministic application for each pass.",
+  "reference": "https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#application-range-replay",
+  "outcome_blinding": {
+    "accepted_v1_traffic_records_before_amendment": 0,
+    "observed_dram_read_bytes": null,
+    "observed_dram_write_bytes": null
+  }
+}

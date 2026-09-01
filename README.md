@@ -105,7 +105,7 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `llama-holdout.json` | architecture holdout | 12 | 5 |
 | `dynamic.json` | realized-state validation | 9 | 5 |
 | `ncu-anchors.json` | physical-traffic mechanism anchors | 16 | 3 |
-| `gh200-v1-anchors.json` | frozen GH200 BF16 V1 range-replay anchors | 12 | 5 |
+| `gh200-v1-anchors.json` | frozen GH200 BF16 V1 application-range-replay anchors | 12 | 5 |
 | `gh200-primary-bf16.json` | GH200 BF16 coefficient/discrepancy identification | 9 | 5 |
 | `gh200-primary-bf16-evaluation.json` | separately sealed GH200 BF16 evaluation | 6 | 5 |
 

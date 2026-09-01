@@ -1,4 +1,4 @@
-"""Parse a single-range Nsight Compute CSV into a V1 traffic record."""
+"""Parse one application-range Nsight Compute CSV into a V1 traffic record."""
 
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def build_traffic_report(anchor_json: Path, ncu_csv: Path) -> dict[str, Any]:
     write_bytes = observed["dram__bytes_write.sum"]
     return {
         "schema_version": 1,
-        "measurement": "gh200-v1-range-replay-traffic-anchor",
+        "measurement": "gh200-v1-application-range-replay-traffic-anchor",
         "energy_measurement": False,
         "run": anchor["run"],
         "campaign_lock_sha256": anchor["campaign_lock_sha256"],

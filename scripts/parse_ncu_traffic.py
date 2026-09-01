@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parse one V1 NCU range-replay CSV from a source checkout."""
+"""Parse one V1 NCU application-range CSV from a source checkout."""
 
 from pathlib import Path
 import sys

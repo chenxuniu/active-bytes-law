@@ -56,6 +56,14 @@ class CampaignTests(unittest.TestCase):
             {run["split"] for run in evaluation["run_order"]}, {"evaluation"}
         )
 
+    def test_gh200_v1_uses_amended_application_range_replay(self):
+        lock = expand_campaign(self.load("gh200-v1-anchors.json"))
+        modes = {
+            run["parameters"]["profiler_replay_mode"]
+            for run in lock["run_order"]
+        }
+        self.assertEqual(modes, {"app-range"})
+
     def test_pilot_declared_order_is_rotated_across_repeats(self):
         lock = expand_campaign(self.load("pilot.json"))
         cells = [run["cell_id"] for run in lock["run_order"]]

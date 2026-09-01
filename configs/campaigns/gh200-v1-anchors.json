@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "campaign_id": "token-energy-law-gh200-bf16-v1-traffic-anchors-v1",
+  "campaign_id": "token-energy-law-gh200-bf16-v1-traffic-anchors-v2",
   "seed": 20260903,
   "randomize_cell_order": true,
   "defaults": {
@@ -21,7 +21,8 @@
     "metered_decode_tokens_per_request": 1,
     "profiled_decode_iterations": 1,
     "nvtx_range": "activebytes_decode",
-    "profiler_replay_mode": "range",
+    "profiler_replay_mode": "app-range",
+    "profiler_replay_amendment_sha256": "6b3db278e302ca58d83b3e62c7e5afb9fb2d6a71cbc12db442ad5b5c0da807e8",
     "profiler_cache_control": "none",
     "profiler_clock_control": "none",
     "profiler_metrics": [

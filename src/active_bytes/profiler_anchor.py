@@ -39,6 +39,8 @@ def run_profiler_anchor(
         raise ValueError("V1 anchor runner accepts only profiler-anchor runs")
     if int(parameters["metered_decode_tokens_per_request"]) != 1:
         raise ValueError("V1 range contract requires exactly one decode iteration")
+    if parameters.get("profiler_replay_mode") != "app-range":
+        raise ValueError("V1 profiler contract requires application-range replay")
     locked_utilization = float(parameters["gpu_memory_utilization"])
     if not math.isclose(
         locked_utilization, gpu_memory_utilization, rel_tol=0.0, abs_tol=1e-12
@@ -188,6 +190,7 @@ def run_profiler_anchor(
         },
         "profile_range": {
             "name": range_name,
+            "replay_mode": parameters["profiler_replay_mode"],
             "decode_iterations": 1,
             "metered_useful_tokens": useful_tokens,
             "start_monotonic_ns": start_ns,

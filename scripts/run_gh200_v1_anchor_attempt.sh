@@ -23,6 +23,7 @@ hf_cache=${TEL_HF_CACHE:-/srv/token-energy-law/hf-cache}
 container_home=${TEL_CONTAINER_HOME:-/srv/token-energy-law/container-home}
 campaign_lock="$repo_root/results/manifests/gh200-v1-anchors.lock.json"
 execution_addendum="$repo_root/configs/addenda/gh200-primary-bf16-v1.json"
+profiler_amendment="$repo_root/configs/addenda/gh200-v1-profiler-replay-amendment-v1.json"
 result_domain=v1-profiler-anchors
 
 if [[ -n "$(git -C "$repo_root" status --short)" ]]; then
@@ -32,7 +33,9 @@ if [[ -n "$(git -C "$repo_root" status --short)" ]]; then
 fi
 (
   cd "$repo_root/configs/addenda"
-  sha256sum -c gh200-primary-bf16-v1.json.sha256
+  sha256sum -c \
+    gh200-primary-bf16-v1.json.sha256 \
+    gh200-v1-profiler-replay-amendment-v1.json.sha256
 )
 (
   cd "$repo_root/results/manifests"
@@ -53,6 +56,8 @@ print(p["gpu_memory_utilization"])
 print(p["power_limit_w"])
 print(p["nvtx_range"])
 print(",".join(p["profiler_metrics"]))
+print(p["profiler_replay_mode"])
+print(p["profiler_replay_amendment_sha256"])
 print(p["execution_addendum_sha256"])
 if order > 0:
     print(next(row for row in lock["run_order"] if row["order"] == order - 1)["run_id"])
@@ -68,12 +73,24 @@ gpu_memory_utilization=${resolved[3]}
 locked_power_limit_w=${resolved[4]}
 nvtx_range=${resolved[5]}
 metrics=${resolved[6]}
-locked_addendum_sha=${resolved[7]}
-previous_run_id=${resolved[8]}
+profiler_replay_mode=${resolved[7]}
+locked_profiler_amendment_sha=${resolved[8]}
+locked_addendum_sha=${resolved[9]}
+previous_run_id=${resolved[10]}
+
+if [[ "$profiler_replay_mode" != "app-range" ]]; then
+  echo "V1 profiler replay mode must be app-range after the frozen amendment" >&2
+  exit 65
+fi
 
 observed_addendum_sha=$(sha256sum "$execution_addendum" | awk '{print $1}')
 if [[ "$observed_addendum_sha" != "$locked_addendum_sha" ]]; then
   echo "execution addendum does not match the V1 campaign lock" >&2
+  exit 65
+fi
+observed_profiler_amendment_sha=$(sha256sum "$profiler_amendment" | awk '{print $1}')
+if [[ "$observed_profiler_amendment_sha" != "$locked_profiler_amendment_sha" ]]; then
+  echo "profiler replay amendment does not match the V1 campaign lock" >&2
   exit 65
 fi
 observed_power_limit_w=$(nvidia-smi -i "$gpu_index" \
@@ -126,7 +143,11 @@ runner_log="$attempt_dir/runner.log"
 ncu_report_prefix="/workspace/results/$relative_attempt/anchor-profile"
 
 git -C "$repo_root" rev-parse HEAD >"$attempt_dir/repository.commit.txt"
-sha256sum "$campaign_lock" "$execution_addendum" >"$attempt_dir/contracts.sha256.txt"
+sha256sum \
+  "$campaign_lock" \
+  "$execution_addendum" \
+  "$profiler_amendment" \
+  >"$attempt_dir/contracts.sha256.txt"
 nvidia-smi -i "$gpu_index" \
   --query-gpu=index,name,memory.used,memory.free,power.draw,power.limit,temperature.gpu \
   --format=csv >"$attempt_dir/gpu.before.csv"
@@ -152,7 +173,7 @@ sudo docker run --rm \
   --target-processes all \
   --nvtx \
   --nvtx-include "${nvtx_range}/" \
-  --replay-mode range \
+  --replay-mode "$profiler_replay_mode" \
   --cache-control none \
   --clock-control none \
   --metrics "$metrics" \
@@ -172,6 +193,11 @@ set -e
 sudo chown -R "$(id -u):$(id -g)" "$attempt_dir"
 if (( runner_rc != 0 )); then
   echo "V1 profiler runner failed (rc=$runner_rc)" >&2
+  if [[ -s "$ncu_csv" ]]; then
+    echo "=== Nsight Compute diagnostic ===" >&2
+    tail -160 "$ncu_csv" >&2
+  fi
+  echo "=== application diagnostic ===" >&2
   tail -160 "$runner_log" >&2
   exit "$runner_rc"
 fi
