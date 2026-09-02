@@ -129,6 +129,15 @@ driver skips accepted alignments and survives SSH loss when launched under tmux.
 Unlike the mechanism-only profiler batch, a failed confirmatory energy run stops
 the sequence; rerun the same command after diagnosis to retry that exact order.
 
+After all 45 identification runs are accepted, audit the telemetry available
+outside their exact decode boundaries with
+`scripts/audit_gh200_primary_idle_windows.py`.  This diagnostic is deliberately
+non-promotional: it records whether pre/post samples exist, but cannot choose a
+post-outcome idle estimator or convert gross board energy into an eligible
+idle-corrected result.  Freeze that policy, or explicitly keep gross board
+J/token as the estimand, before fitting coefficients and before releasing the
+separate evaluation campaign.
+
 After all 60 anchors pass, audit artifact hashes, repetition completeness, cell
 confidence intervals, and the raw two-component traffic-law fit with
 `scripts/aggregate_gh200_v1_traffic.py`. This aggregate intentionally does not
