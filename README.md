@@ -123,6 +123,12 @@ before an attempt directory exists still abort the batch. Every invocation has
 a persistent batch log and JSON summary. Re-running the same range skips accepted
 outcomes and retries missing ones. Valid order values are 0 through 59.
 
+After all 60 anchors pass, audit artifact hashes, repetition completeness, cell
+confidence intervals, and the raw two-component traffic-law fit with
+`scripts/aggregate_gh200_v1_traffic.py`. This aggregate intentionally does not
+apply the separately frozen cache/residency correction and is not itself a formal
+V1 decision.
+
 ## Data policy
 
 Git stores configs, lock files, sanitized manifests, cell-level summaries,
