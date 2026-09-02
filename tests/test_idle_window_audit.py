@@ -72,6 +72,7 @@ class IdleWindowAuditTests(unittest.TestCase):
             )
             self.assertTrue(report["artifact_qc_pass"])
             self.assertTrue(report["all_runs_have_bracketing_samples"])
+            self.assertEqual(report["campaign_lock_sha256"], "a" * 64)
             self.assertFalse(
                 report["idle_correction_contract"]["paper_outcome_eligible"]
             )

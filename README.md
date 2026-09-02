@@ -138,6 +138,14 @@ idle-corrected result.  Freeze that policy, or explicitly keep gross board
 J/token as the estimand, before fitting coefficients and before releasing the
 separate evaluation campaign.
 
+The frozen GH200 identification campaign selected gross scope-0 GPU-board
+J/useful-token as its primary outcome.  After the idle-window availability
+audit, freeze the 30-run OLS--HC3 coefficient artifact and the disjoint 15-run
+Bonferroni-$t$ discrepancy envelope with
+`scripts/freeze_gh200_primary_identification.py`.  The command emits immutable
+digests but does not itself open evaluation; a separate release record must bind
+both digests first.
+
 After all 60 anchors pass, audit artifact hashes, repetition completeness, cell
 confidence intervals, and the raw two-component traffic-law fit with
 `scripts/aggregate_gh200_v1_traffic.py`. This aggregate intentionally does not

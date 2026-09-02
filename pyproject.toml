@@ -27,6 +27,7 @@ ab-compare-kv-calibration-doctors = "active_bytes.calibration_compare:main"
 ab-run-full-kv-calibration = "active_bytes.full_calibration:main"
 ab-run-checkpoint-load-audit = "active_bytes.checkpoint_audit:main"
 ab-aggregate-v1-traffic = "active_bytes.v1_traffic_aggregate:main"
+ab-freeze-gh200-primary-identification = "active_bytes.primary_identification:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
