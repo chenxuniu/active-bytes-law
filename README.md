@@ -123,6 +123,12 @@ before an attempt directory exists still abort the batch. Every invocation has
 a persistent batch log and JSON summary. Re-running the same range skips accepted
 outcomes and retries missing ones. Valid order values are 0 through 59.
 
+Run an inclusive range of the frozen GH200 primary BF16 identification campaign
+with `scripts/run_gh200_primary_bf16_batch.sh START_ORDER END_ORDER 0`. This
+driver skips accepted alignments and survives SSH loss when launched under tmux.
+Unlike the mechanism-only profiler batch, a failed confirmatory energy run stops
+the sequence; rerun the same command after diagnosis to retry that exact order.
+
 After all 60 anchors pass, audit artifact hashes, repetition completeness, cell
 confidence intervals, and the raw two-component traffic-law fit with
 `scripts/aggregate_gh200_v1_traffic.py`. This aggregate intentionally does not
