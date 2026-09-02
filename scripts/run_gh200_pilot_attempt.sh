@@ -17,8 +17,14 @@ campaign_lock=${TEL_CAMPAIGN_LOCK:-$repo_root/results/manifests/pilot.lock.json}
 execution_addendum=${TEL_EXECUTION_ADDENDUM:-$repo_root/configs/addenda/gh200-pilot-memory-admission-v1.json}
 result_domain=${TEL_RESULT_DOMAIN:-pilot}
 require_clean_repo=${TEL_REQUIRE_CLEAN_REPO:-0}
+extra_contracts=${TEL_EXTRA_CONTRACTS:-}
 
-for path in "$campaign_lock" "$execution_addendum"; do
+extra_contract_paths=()
+if [[ -n "$extra_contracts" ]]; then
+  IFS=: read -r -a extra_contract_paths <<<"$extra_contracts"
+fi
+
+for path in "$campaign_lock" "$execution_addendum" "${extra_contract_paths[@]}"; do
   if [[ ! -r "$path" ]]; then
     echo "required frozen contract is missing: $path" >&2
     exit 66
@@ -159,7 +165,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 git -C "$repo_root" rev-parse HEAD >"$attempt_dir/repository.commit.txt"
-sha256sum "$campaign_lock" "$execution_addendum" >"$attempt_dir/contracts.sha256.txt"
+sha256sum "$campaign_lock" "$execution_addendum" "${extra_contract_paths[@]}" \
+  >"$attempt_dir/contracts.sha256.txt"
 nvidia-smi -i "$gpu_index" \
   --query-gpu=index,name,memory.used,memory.free,power.draw,power.limit,temperature.gpu \
   --format=csv >"$attempt_dir/gpu.before.csv"

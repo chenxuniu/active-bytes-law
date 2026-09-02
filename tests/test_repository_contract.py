@@ -2,9 +2,11 @@ import json
 import hashlib
 from pathlib import Path
 import subprocess
+import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 
 class RepositoryContractTests(unittest.TestCase):
@@ -29,6 +31,8 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "scripts" / "run_gh200_v1_anchor_attempt.sh",
             ROOT / "scripts" / "run_gh200_v1_anchor_batch.sh",
             ROOT / "scripts" / "run_gh200_primary_bf16_batch.sh",
+            ROOT / "scripts" / "run_gh200_primary_evaluation_attempt.sh",
+            ROOT / "scripts" / "run_gh200_primary_evaluation_batch.sh",
         ):
             with self.subTest(script=script):
                 subprocess.run(["bash", "-n", str(script)], check=True)
@@ -36,6 +40,19 @@ class RepositoryContractTests(unittest.TestCase):
     def test_v1_batch_driver_rejects_invalid_ranges_and_gpu(self):
         script = ROOT / "scripts" / "run_gh200_v1_anchor_batch.sh"
         for arguments in (("12", "60", "0"), ("13", "12", "0"), ("12", "59", "1")):
+            with self.subTest(arguments=arguments):
+                completed = subprocess.run(
+                    [str(script), *arguments],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 64)
+
+    def test_evaluation_batch_driver_rejects_invalid_ranges_and_gpu(self):
+        script = ROOT / "scripts" / "run_gh200_primary_evaluation_batch.sh"
+        for arguments in (("0", "30", "0"), ("2", "1", "0"), ("0", "29", "1")):
             with self.subTest(arguments=arguments):
                 completed = subprocess.run(
                     [str(script), *arguments],
@@ -78,6 +95,15 @@ class RepositoryContractTests(unittest.TestCase):
                 self.assertEqual(
                     hashlib.sha256(contract.read_bytes()).hexdigest(), expected
                 )
+
+    def test_official_evaluation_release_digest_is_compiled_into_verifier(self):
+        from active_bytes.evaluation_release import (  # noqa: PLC0415
+            OFFICIAL_RELEASE_FILENAME,
+            OFFICIAL_RELEASE_SHA256,
+        )
+
+        release = ROOT / "configs" / "addenda" / OFFICIAL_RELEASE_FILENAME
+        self.assertEqual(hashlib.sha256(release.read_bytes()).hexdigest(), OFFICIAL_RELEASE_SHA256)
 
 
 if __name__ == "__main__":

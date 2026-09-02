@@ -146,6 +146,14 @@ Bonferroni-$t$ discrepancy envelope with
 digests but does not itself open evaluation; a separate release record must bind
 both digests first.
 
+The content-addressed evaluation release is
+`configs/addenda/gh200-primary-bf16-evaluation-release-v1.json`. It binds the
+identification coefficient and discrepancy artifacts before opening the 30
+held-out batch-8/batch-24 runs. Execute them only through
+`scripts/run_gh200_primary_evaluation_attempt.sh` or the resumable batch driver
+`scripts/run_gh200_primary_evaluation_batch.sh`; both fail closed when any
+released digest changes.
+
 After all 60 anchors pass, audit artifact hashes, repetition completeness, cell
 confidence intervals, and the raw two-component traffic-law fit with
 `scripts/aggregate_gh200_v1_traffic.py`. This aggregate intentionally does not

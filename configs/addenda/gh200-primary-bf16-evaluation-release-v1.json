@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "release_id": "gh200-primary-bf16-evaluation-release-v1",
+  "created_utc": "2026-09-02T17:05:01Z",
+  "decision_stage": "after-identification-freeze-before-any-evaluation-outcome",
+  "identification_campaign": {
+    "campaign_id": "token-energy-law-gh200-primary-bf16-identification-v1",
+    "campaign_lock_sha256": "e48c6441eddf79334190318e5dffae07156adeea43909185e4f0884998af0d0a",
+    "accepted_run_count": 45,
+    "fit_run_count": 30,
+    "calibration_run_count": 15,
+    "outcome": "gross_gpu_board_joules_per_useful_token"
+  },
+  "frozen_artifacts": {
+    "coefficient-artifact.json": "588198fde9a4b803a52e2b0fed6fcc07e8fcbe8cca97e952294a0e7156eebdd5",
+    "discrepancy-envelope.json": "ba12325db4e5f76b1053c9785f67fa89684e46a60e6470f8ccad592bbe271da7",
+    "accepted-runs.csv": "330734ffcca881d67646993ef6ce6979082873751727a74bc44508957f5527a7",
+    "identification-freeze-summary.json": "289b92599dce4b16842fb78725c97afc87b6d286422949da2bd496b9b49bc332"
+  },
+  "frozen_estimates": {
+    "c_joules_per_token": -0.2824175705712273,
+    "alpha_joules_per_decimal_gb": 0.2630313341587118,
+    "beta_joules_per_decimal_gb": 0.7570095644866918,
+    "common_residual_range_joules_per_token": [
+      -0.17160796992748076,
+      0.08952780250655464
+    ]
+  },
+  "identification_decisions": {
+    "two_slope_familywise_positivity_pass": true,
+    "single_coefficient_equivalence_pass": false,
+    "beta_over_alpha": 2.8780204720016966,
+    "beta_over_alpha_90_percent_interval": [
+      2.126334242659721,
+      3.895437354618383
+    ],
+    "interpretation": "The evaluation tests the frozen weighted weight-plus-KV law. It must not collapse the two traffic terms to one coefficient."
+  },
+  "evaluation_campaign": {
+    "campaign_id": "token-energy-law-gh200-primary-bf16-evaluation-v1",
+    "campaign_lock_sha256": "b161ababafed98e07e8f0c31a490ba92358d31a0330679f483fc589929aa1ddd",
+    "campaign_lock_file_sha256": "e0de534352328b93256a38306953b4edb5294677da064cec2061fddb1e6d73c8",
+    "run_count": 30,
+    "cells": 6,
+    "batches": [8, 24],
+    "target_mean_attended_history_tokens": [4096, 8192, 16384]
+  },
+  "release_policy": {
+    "released": true,
+    "release_requires_exact_artifact_hashes": true,
+    "evaluation_may_not_refit_coefficients": true,
+    "evaluation_may_not_recalibrate_the_envelope": true,
+    "scientific_gate_failure_did_not_block_release": true,
+    "reason": "Evaluation is a held-out test of the prespecified two-term model; failure of equal per-byte coefficients is itself a frozen scientific result."
+  }
+}
