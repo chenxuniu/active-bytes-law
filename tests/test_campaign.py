@@ -22,6 +22,7 @@ EXPECTED = {
     "gh200-memory-placebo.json": (1, 3),
     "gh200-primary-bf16.json": (9, 45),
     "gh200-primary-bf16-evaluation.json": (6, 30),
+    "gh200-v2-duration-holdout.json": (9, 45),
     "gh200-v1-anchors.json": (12, 60),
 }
 

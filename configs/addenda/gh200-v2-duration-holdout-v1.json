@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "gh200-v2-duration-holdout-v1",
+  "status": "frozen-before-new-outcomes",
+  "purpose": "Confirm or reject the post-P2 duration-augmented active-byte model on unopened GH200 batch/context coordinates.",
+  "development_data": {
+    "interpretation": "model-development-only; includes the original identification and first held-out campaigns because the duration term was selected after inspecting both",
+    "run_count": 75,
+    "sources": [
+      {
+        "name": "gh200-primary-identification-accepted-runs",
+        "sha256": "330734ffcca881d67646993ef6ce6979082873751727a74bc44508957f5527a7"
+      },
+      {
+        "name": "gh200-primary-evaluation-runs",
+        "sha256": "313ba25546a5e0e249980c1f6546845beffdf82669777cc01a01a9b113478a3d"
+      }
+    ]
+  },
+  "frozen_model": {
+    "equation": "E_token = intercept + alpha_weight * weight_decimal_GB_per_token + beta_kv * kv_read_write_decimal_GB_per_token + p_time_W * decode_seconds_per_useful_token",
+    "outcome": "gross_gpu_board_joules_per_useful_token",
+    "coefficients": {
+      "intercept_joules_per_token": 0.012323633340720352,
+      "alpha_weight_joules_per_decimal_gb": 0.11082020099158096,
+      "beta_kv_joules_per_decimal_gb": 0.18008276666326767,
+      "p_time_watts": 139.56375028700302
+    },
+    "development_diagnostics": {
+      "r_squared": 0.9999310623650516,
+      "mean_absolute_relative_error": 0.004349837836617395,
+      "median_absolute_relative_error": 0.003542830129648892,
+      "maximum_absolute_relative_error": 0.01458525221765478,
+      "rmse_joules_per_token": 0.0031679966415265846
+    },
+    "prediction_timing": "retrospective-per-run: decode duration is observed over the same boundary-aligned interval; this is not an advance scheduler forecast unless duration is separately predicted"
+  },
+  "new_holdout": {
+    "contexts": [6144, 10240, 14336],
+    "batches": [12, 20, 28],
+    "cell_count": 9,
+    "repetitions_per_cell": 5,
+    "run_count": 45,
+    "coordinates_were_absent_from_development_data": true
+  },
+  "primary_gates": {
+    "unit_of_analysis": "cell mean over five independent runs",
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.1,
+    "required_cells_passing_ten_percent_error": 9,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_cells_are_not_deleted": true
+  },
+  "claim_policy": {
+    "original_P2_remains_rejected": true,
+    "passing_result": "supports a same-stack duration-augmented accounting model on the tested GH200 interpolation domain",
+    "failing_result": "retains traffic closure and rejects this V2 energy closure",
+    "not_authorized": [
+      "universal token-energy law",
+      "cross-model coefficient transfer",
+      "cross-hardware coefficient transfer",
+      "causal interpretation of p_time_watts as literal idle power"
+    ]
+  }
+}
