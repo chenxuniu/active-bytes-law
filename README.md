@@ -153,6 +153,9 @@ held-out batch-8/batch-24 runs. Execute them only through
 `scripts/run_gh200_primary_evaluation_attempt.sh` or the resumable batch driver
 `scripts/run_gh200_primary_evaluation_batch.sh`; both fail closed when any
 released digest changes.
+After all 30 runs pass, execute `scripts/evaluate_gh200_primary_held_out.py`.
+It never refits: it reports six cell means, empirical frozen-envelope coverage,
+relative width/error, and the prespecified HC3 batch/context residual trends.
 
 After all 60 anchors pass, audit artifact hashes, repetition completeness, cell
 confidence intervals, and the raw two-component traffic-law fit with

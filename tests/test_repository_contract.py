@@ -105,6 +105,11 @@ class RepositoryContractTests(unittest.TestCase):
         release = ROOT / "configs" / "addenda" / OFFICIAL_RELEASE_FILENAME
         self.assertEqual(hashlib.sha256(release.read_bytes()).hexdigest(), OFFICIAL_RELEASE_SHA256)
 
+    def test_held_out_evaluator_wrapper_is_executable_and_compiles(self):
+        script = ROOT / "scripts" / "evaluate_gh200_primary_held_out.py"
+        self.assertTrue(script.stat().st_mode & 0o111)
+        subprocess.run([sys.executable, "-m", "py_compile", str(script)], check=True)
+
 
 if __name__ == "__main__":
     unittest.main()

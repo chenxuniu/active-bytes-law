@@ -29,6 +29,7 @@ ab-run-checkpoint-load-audit = "active_bytes.checkpoint_audit:main"
 ab-aggregate-v1-traffic = "active_bytes.v1_traffic_aggregate:main"
 ab-freeze-gh200-primary-identification = "active_bytes.primary_identification:main"
 ab-verify-gh200-evaluation-release = "active_bytes.evaluation_release:main"
+ab-evaluate-gh200-primary-held-out = "active_bytes.primary_evaluation:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
