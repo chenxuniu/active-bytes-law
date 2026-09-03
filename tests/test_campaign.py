@@ -26,6 +26,8 @@ EXPECTED = {
     "gh200-v1-anchors.json": (12, 60),
     "gh200-qwen2p5-14b-qualification.json": (1, 1),
     "gh200-qwen2p5-14b-qualification-v2.json": (1, 1),
+    "gh200-qwen2p5-14b-identification.json": (9, 45),
+    "gh200-qwen2p5-14b-holdout.json": (6, 30),
 }
 
 
@@ -87,6 +89,60 @@ class CampaignTests(unittest.TestCase):
                     )
                 )
                 self.assertEqual(observed, expand_campaign(source))
+
+    def test_qwen14b_replication_locks_match_sources_and_holdout_is_sealed(self):
+        pairs = (
+            (
+                "gh200-qwen2p5-14b-identification.json",
+                "gh200-qwen2p5-14b-identification.lock.json",
+            ),
+            (
+                "gh200-qwen2p5-14b-holdout.json",
+                "gh200-qwen2p5-14b-holdout.lock.json",
+            ),
+        )
+        expanded = {}
+        for source_name, lock_name in pairs:
+            with self.subTest(source=source_name):
+                source = self.load(source_name)
+                expected = expand_campaign(source)
+                observed = json.loads(
+                    (ROOT / "results" / "manifests" / lock_name).read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertEqual(observed, expected)
+                expanded[source_name] = expected
+
+        identification_coordinates = {
+            (
+                run["parameters"]["target_mean_attended_history_tokens"],
+                run["parameters"]["target_batch"],
+            )
+            for run in expanded[
+                "gh200-qwen2p5-14b-identification.json"
+            ]["run_order"]
+        }
+        holdout = expanded["gh200-qwen2p5-14b-holdout.json"]
+        holdout_coordinates = {
+            (
+                run["parameters"]["target_mean_attended_history_tokens"],
+                run["parameters"]["target_batch"],
+            )
+            for run in holdout["run_order"]
+        }
+        self.assertTrue(identification_coordinates.isdisjoint(holdout_coordinates))
+        self.assertEqual(
+            {run["parameters"]["execution_state"] for run in holdout["run_order"]},
+            {"sealed-unreleased"},
+        )
+        self.assertEqual(
+            {
+                run["parameters"]["requires_frozen_identification_release"]
+                for run in holdout["run_order"]
+            },
+            {True},
+        )
 
     def test_pilot_declared_order_is_rotated_across_repeats(self):
         lock = expand_campaign(self.load("pilot.json"))

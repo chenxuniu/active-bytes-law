@@ -18,9 +18,11 @@ historical context. We also track the new-token KV write,
 This repository is the public experiment contract and artifact index for the
 paper. The completed Qwen2.5-7B/GH200 campaigns establish one
 platform--model--runtime instantiation; they do not by themselves establish a
-cross-model or cross-platform law. The next gate is a non-paper
-Qwen2.5-14B/GH200 qualification. No 14B energy campaign is frozen or opened
-until its model, geometry, decode boundary, and runtime-storage audits pass.
+cross-model or cross-platform law. The Qwen2.5-14B/GH200 qualification has
+passed without measuring energy. Its 45-run identification campaign and a
+disjoint 30-run holdout are now frozen; the holdout remains sealed until the
+identification coefficients and residual envelope pass their prespecified
+gates and are bound by a separate release.
 
 ## What is ready
 
@@ -114,6 +116,8 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `gh200-primary-bf16-evaluation.json` | separately sealed GH200 BF16 evaluation | 6 | 5 |
 | `gh200-v2-duration-holdout.json` | later unopened duration-augmented holdout | 9 | 5 |
 | `gh200-qwen2p5-14b-qualification-v2.json` | non-paper second-model qualification | 1 | 1 |
+| `gh200-qwen2p5-14b-identification.json` | second-model duration-form identification/calibration | 9 | 5 |
+| `gh200-qwen2p5-14b-holdout.json` | sealed second-model form-replication holdout | 6 | 5 |
 
 The older generic grids remain design provenance.  The currently executable
 primary path is the checksummed GH200 BF16 V1/identification/evaluation set
@@ -175,6 +179,13 @@ the immutable model revision, exact high-KV geometry, runtime weight storage,
 and logical KV bytes. A pass authorizes campaign design only; identification
 and holdout locks are created afterward so that the held-out coordinates remain
 genuinely unopened.
+
+The qualification passed at the prespecified high-KV geometry. Follow the
+[Qwen2.5-14B identification runbook](docs/gh200-qwen2p5-14b-identification.md)
+to execute the 45 identification runs and freeze the four-coefficient duration
+model. The runbook deliberately provides no holdout execution command: those
+30 outcomes remain unavailable until a content-addressed release binds the
+successful identification artifacts.
 
 ## Data policy
 

@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "addendum_id": "gh200-qwen2p5-14b-form-replication-v1",
+  "created_utc": "2026-09-03T21:00:00Z",
+  "decision_stage": "after-model-qualification-before-any-qwen2p5-14b-energy-outcome",
+  "purpose": "Test whether the duration-augmented Token-Energy functional form can be re-identified and predict unopened coordinates for a second model on the same GH200 runtime stratum.",
+  "qualification_evidence": {
+    "qualification_id": "gh200-qwen2p5-14b-form-replication-qualification-v2",
+    "qualification_result_relative_to_results_root": "model-qualification/qwen2p5-14b/qualification-20260903T202328Z",
+    "qualification_repository_commit": "0e4f989f18a0cf4c15f143d1482b18a20c6addb5",
+    "qualification_contract_sha256": "4519025c9f6ca6e8264f8860856cbbb18bb3a2d5ff9e6f769e07a6accec2e767",
+    "qualification_lock_file_sha256": "58b4aef551e71f14cf32e38381a530f9ba8233d84d266e506ff54528b082a3c5",
+    "qualification_lock_sha256": "e95e56f6ce8c2a2b9d9262123a9288d01d9e144f66703c0a1675646c7f6566e5",
+    "qualification_summary_sha256": "62ed3eeca18851f04859bd4296013587a8baf9b8f6757a5bf916e8958c40efeb",
+    "batch_doctor_sha256": "4a21c2c696a71fa8aed6388787a5e3c024f3e08556ddf2d44c8f7fea5d131a11",
+    "runtime_audit_sha256": "db79dd7b8275444e9809b5480f4723af88cf25d57654d792c8451ea6f9acad83",
+    "artifacts_index_sha256": "996cf24fe8ee098c736081291c5ac4a31fa9bb91e5f20cd4ab3befd8d39cf19f",
+    "backup_archive_sha256": "49bd893c28d7ddf1885a1ace3347ef6247d4bf5bc900b1721bdc8082081e0b52",
+    "qc_pass": true,
+    "energy_measurement": false,
+    "observed_unique_weight_storage_bytes": 29548455936,
+    "observed_logical_kv_bytes_per_attended_token": 196608,
+    "observed_extreme_decode_seconds": 57.073201148
+  },
+  "scope": {
+    "model": "Qwen/Qwen2.5-14B-Instruct",
+    "model_revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+    "accelerator": "NVIDIA GH200 144GB HBM3e",
+    "driver_version": "580.173.02",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "attention_backend": "FLASH_ATTN",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "power_limit_w": 700
+  },
+  "identification_design": {
+    "coefficient_fit": {
+      "target_mean_attended_history_tokens": [4096, 10240, 16384],
+      "target_batch": [4, 16],
+      "cell_count": 6,
+      "repetitions_per_cell": 5,
+      "run_count": 30
+    },
+    "residual_calibration": {
+      "target_mean_attended_history_tokens": [4096, 10240, 16384],
+      "target_batch": [8],
+      "cell_count": 3,
+      "repetitions_per_cell": 5,
+      "run_count": 15
+    },
+    "total_run_count": 45,
+    "randomized_cyclic_execution": true
+  },
+  "sealed_holdout_design": {
+    "target_mean_attended_history_tokens": [6144, 12288, 14336],
+    "target_batch": [6, 12],
+    "cell_count": 6,
+    "repetitions_per_cell": 5,
+    "run_count": 30,
+    "coordinates_absent_from_identification": true,
+    "execution_state": "sealed-unreleased",
+    "release_requires_frozen_identification_artifacts": true
+  },
+  "execution_policy": {
+    "gpu_index": 0,
+    "gpu_memory_utilization": 0.8,
+    "requested_api_output_tokens": 1025,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 1024,
+    "minimum_episode_decode_seconds": 5,
+    "minimum_repeat_decode_seconds": 30,
+    "prompt_length_policy": "balanced-exact-target-mean",
+    "chunked_prefill": false,
+    "cpu_offload_gb": 0,
+    "swap_space_gb": 0,
+    "prefix_caching": false,
+    "speculation": false,
+    "failed_identification_run_stops_the_batch": true,
+    "accepted_runs_are_never_overwritten": true
+  },
+  "measurement_policy": {
+    "primary_outcome": "gross_gpu_board_joules_per_useful_token",
+    "primary_energy_scope": "gpu-board-nvml-scope-0-instantaneous-integral",
+    "secondary_energy_scope": "gh200-module-nvml-scope-1-and-counter",
+    "maximum_aligned_sampling_gap_ms": 50,
+    "maximum_module_counter_relative_error": 0.02,
+    "global_collector_gap_outside_all_decode_intervals_does_not_censor_an_aligned_repeat": true,
+    "idle_subtraction": false
+  },
+  "analysis_policy": {
+    "analysis_id": "qwen14b-duration-identification-v1",
+    "unit_of_fit": "accepted-independent-run",
+    "fit_split_only": "coefficient-fit",
+    "equation": "E_token = intercept + alpha_weight * weight_decimal_GB_per_token + beta_kv * kv_read_write_decimal_GB_per_token + p_time_W * decode_seconds_per_useful_token",
+    "estimator": "unweighted ordinary least squares with HC3 covariance",
+    "predictors": [
+      "intercept",
+      "weight_decimal_GB_per_token",
+      "kv_read_write_decimal_GB_per_token",
+      "decode_seconds_per_useful_token"
+    ],
+    "traffic_slope_gate": "Bonferroni familywise one-sided 0.05 lower bounds for alpha_weight and beta_kv must both exceed zero",
+    "time_term_gate": "p_time_W point estimate must be finite and nonnegative; it is a nuisance coefficient and is not interpreted as literal idle power",
+    "residual_calibration": "three prespecified batch-8 cell-mean residual intervals using Bonferroni Student-t familywise gamma 0.05",
+    "coefficient_equality_across_models_required": false,
+    "zero_shot_qwen7b_coefficient_transfer": "secondary-diagnostic-only"
+  },
+  "holdout_gates": {
+    "unit_of_analysis": "cell mean over five independent runs",
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.10,
+    "required_cells_passing_ten_percent_error": 6,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_cells_are_not_deleted": true
+  },
+  "claim_policy": {
+    "identification_alone_confirms_cross_model_form": false,
+    "passing_unopened_holdout_supports": "same functional form with newly identified model-stratum coefficients on a second model over the tested interpolation domain",
+    "not_authorized": [
+      "universal coefficients",
+      "cross-hardware coefficient transfer",
+      "advance latency prediction from the retrospective duration term",
+      "causal interpretation of p_time_W as literal idle power",
+      "DVFS conclusions"
+    ]
+  }
+}
