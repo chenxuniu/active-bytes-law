@@ -35,6 +35,7 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "scripts" / "run_gh200_primary_evaluation_batch.sh",
             ROOT / "scripts" / "run_gh200_v2_duration_holdout_attempt.sh",
             ROOT / "scripts" / "run_gh200_v2_duration_holdout_batch.sh",
+            ROOT / "scripts" / "run_gh200_qwen14b_qualification.sh",
         ):
             with self.subTest(script=script):
                 subprocess.run(["bash", "-n", str(script)], check=True)
@@ -68,6 +69,19 @@ class RepositoryContractTests(unittest.TestCase):
     def test_v2_duration_batch_driver_rejects_invalid_ranges_and_gpu(self):
         script = ROOT / "scripts" / "run_gh200_v2_duration_holdout_batch.sh"
         for arguments in (("0", "45", "0"), ("2", "1", "0"), ("0", "44", "1")):
+            with self.subTest(arguments=arguments):
+                completed = subprocess.run(
+                    [str(script), *arguments],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 64)
+
+    def test_qwen14b_qualification_rejects_invalid_gpu(self):
+        script = ROOT / "scripts" / "run_gh200_qwen14b_qualification.sh"
+        for arguments in (("2",), ("0", "1")):
             with self.subTest(arguments=arguments):
                 completed = subprocess.run(
                     [str(script), *arguments],
@@ -124,6 +138,7 @@ class RepositoryContractTests(unittest.TestCase):
         for name in (
             "evaluate_gh200_primary_held_out.py",
             "evaluate_gh200_v2_duration_holdout.py",
+            "evaluate_model_qualification.py",
         ):
             script = ROOT / "scripts" / name
             with self.subTest(script=script):

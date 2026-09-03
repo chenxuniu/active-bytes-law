@@ -6,12 +6,31 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from active_bytes.runtime_audit import (  # noqa: E402
     _known_cache_roots,
+    _model_geometry_report,
     resolve_runtime_contract,
     validate_cache_dtype_contract,
 )
 
 
 class RuntimeAuditTests(unittest.TestCase):
+    def test_model_geometry_recovers_logical_bf16_kv_bytes(self):
+        class Config:
+            hidden_size = 5120
+            num_attention_heads = 40
+            num_key_value_heads = 8
+            num_hidden_layers = 48
+            max_position_embeddings = 32768
+
+        class ModelConfig:
+            hf_config = Config()
+
+        class Engine:
+            model_config = ModelConfig()
+
+        report = _model_geometry_report(Engine(), declared_kv_dtype="bf16")
+        self.assertEqual(report["head_dim"], 128)
+        self.assertEqual(report["logical_kv_bytes_per_attended_token"], 196608)
+
     def test_known_cache_roots_descend_into_cache_engines(self):
         class CacheEngine:
             gpu_cache = ["cache-tensor"]

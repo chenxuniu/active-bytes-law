@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "campaign_id": "active-bytes-gh200-qwen2p5-14b-qualification-v1",
+  "seed": 20260903,
+  "randomize_cell_order": false,
+  "defaults": {
+    "model": "Qwen/Qwen2.5-14B-Instruct",
+    "model_id": "qwen2p5-14b",
+    "model_revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+    "accelerator_class": "NVIDIA GH200 144GB HBM3e",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "attention_backend": "FLASH_ATTN",
+    "driver_version": "580.173.02",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "metered_decode_tokens_per_request": 1024,
+    "prompt_length_policy": "balanced-exact-target-mean",
+    "prefix_cache": false,
+    "speculative_decode": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "power_limit_w": 700,
+    "gpu_memory_utilization": 0.8,
+    "execution_addendum_sha256": "2e863afcb49401bfca38fa6e23bf72f12fea9c8f77428a56409d2b93d1cbecec",
+    "qualification_only": true,
+    "may_enter_paper_outcomes": false,
+    "repetitions": 1
+  },
+  "blocks": [
+    {
+      "block_id": "qwen2p5-14b-extreme-geometry-qualification",
+      "split": "pilot",
+      "cells": [
+        {
+          "cell_id": "gh-q14-qual-l16384-b20",
+          "target_mean_attended_history_tokens": 16384,
+          "target_batch": 20
+        }
+      ]
+    }
+  ]
+}

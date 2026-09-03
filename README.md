@@ -16,36 +16,40 @@ historical context. We also track the new-token KV write,
 `Pi_WK = B_eff * K_KV * L_bar / M_w`.
 
 This repository is the public experiment contract and artifact index for the
-paper. It does **not** yet claim that the law is confirmed. The first milestone
-is a four-cell acceptance pilot on one GH200; H100 and other confirmatory cells are opened only
-after decode boundaries, token conservation, energy agreement, and HBM-counter
-checks pass.
+paper. The completed Qwen2.5-7B/GH200 campaigns establish one
+platform--model--runtime instantiation; they do not by themselves establish a
+cross-model or cross-platform law. The next gate is a non-paper
+Qwen2.5-14B/GH200 qualification. No 14B energy campaign is frozen or opened
+until its model, geometry, decode boundary, and runtime-storage audits pass.
 
 ## What is ready
 
 - deterministic campaign expansion and immutable SHA-256 lock files;
 - Active-Bytes and runtime-storage accounting;
-- strict static trace validation for 129 API output tokens: one unmetered
-  prefill bootstrap plus 128 metered pure-decode iterations;
+- strict trace validation for one unmetered bootstrap followed by an exact
+  metered pure-decode interval, including the current 1024-token campaigns;
 - DCGM cumulative-energy aggregation across episodes and CV across independent
   repeats;
 - boundary-interpolated trapezoidal integration of sampled power telemetry;
 - scoped NVML collection that keeps GH200 GPU-board and module energy separate;
-- an executable vLLM one-bootstrap/eight-decode boundary doctor;
+- executable single- and multi-request vLLM decode-boundary doctors;
 - campaign membership plus public artifact size/SHA-256 validation;
 - a whitelist-only public system-profile collector;
 - a publication-safety scanner and CI tests;
 - preregistered pilot, core, intervention, placebo, holdout, dynamic, and NCU
   anchor configurations.
 
-## Integration point still required
+## Current evidence boundary
 
-The vLLM-side runner must expose an `LLMEngine`/engine-step decode gate and emit
+The vLLM V0 runner now exposes an `LLMEngine`/engine-step decode gate and emits
 the trace described in [the measurement contract](docs/measurement-contract.md).
-The primary energy interval begins only after prefill, CUDA synchronization, and
-the `DECODE_READY -> GO` handshake; it ends after exactly 128 useful decode
-iterations with `DECODE_DONE -> ACK`. A client-wide serving benchmark that
-contains prefill is retrospective evidence, not confirmatory Active-Bytes data.
+The primary energy interval begins only after prefill, CUDA synchronization,
+and the `DECODE_READY -> GO` handshake; it ends after the exact frozen number of
+useful decode iterations. A client-wide serving benchmark that contains prefill
+is retrospective evidence, not confirmatory Active-Bytes data. The remaining
+scientific boundary is external validity: a second model must reproduce the
+functional form under newly identified coefficients before the paper can make
+a cross-model claim.
 
 ## Start here on the measurement node
 
@@ -108,6 +112,8 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `gh200-v1-anchors.json` | frozen GH200 BF16 V1 application-range-replay anchors | 12 | 5 |
 | `gh200-primary-bf16.json` | GH200 BF16 coefficient/discrepancy identification | 9 | 5 |
 | `gh200-primary-bf16-evaluation.json` | separately sealed GH200 BF16 evaluation | 6 | 5 |
+| `gh200-v2-duration-holdout.json` | later unopened duration-augmented holdout | 9 | 5 |
+| `gh200-qwen2p5-14b-qualification.json` | non-paper second-model qualification | 1 | 1 |
 
 The older generic grids remain design provenance.  The currently executable
 primary path is the checksummed GH200 BF16 V1/identification/evaluation set
@@ -162,6 +168,13 @@ confidence intervals, and the raw two-component traffic-law fit with
 `scripts/aggregate_gh200_v1_traffic.py`. This aggregate intentionally does not
 apply the separately frozen cache/residency correction and is not itself a formal
 V1 decision.
+
+Before collecting any Qwen2.5-14B energy outcome, run the
+[second-model qualification](docs/gh200-qwen2p5-14b-qualification.md). It checks
+the immutable model revision, exact high-KV geometry, runtime weight storage,
+and logical KV bytes. A pass authorizes campaign design only; identification
+and holdout locks are created afterward so that the held-out coordinates remain
+genuinely unopened.
 
 ## Data policy
 

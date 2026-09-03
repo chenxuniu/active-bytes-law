@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "qualification_id": "gh200-qwen2p5-14b-form-replication-qualification-v1",
+  "created_utc": "2026-09-03T00:00:00Z",
+  "decision_stage": "after-qwen2p5-7b-v2-holdout-before-any-qwen2p5-14b-energy-outcome",
+  "purpose": "Qualify a second model and a high-KV geometry before freezing a cross-model functional-form replication campaign.",
+  "energy_measurement": false,
+  "may_enter_paper_outcomes": false,
+  "expected": {
+    "model": {
+      "name": "Qwen/Qwen2.5-14B-Instruct",
+      "revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+      "revision_resolution": "git-ls-remote-refs-heads-main-before-qualification-freeze",
+      "config": {
+        "hidden_size": 5120,
+        "num_hidden_layers": 48,
+        "num_attention_heads": 40,
+        "num_key_value_heads": 8,
+        "head_dim": 128,
+        "kv_element_bytes": 2,
+        "logical_kv_bytes_per_attended_token": 196608,
+        "max_position_embeddings": 32768
+      },
+      "unique_storage_bytes_bounds": [25000000000, 35000000000]
+    },
+    "geometry": {
+      "target_mean_attended_history_tokens": 16384,
+      "target_batch": 20,
+      "metered_decode_tokens_per_request": 1024,
+      "minimum_decode_seconds": 5
+    },
+    "runtime": {
+      "accelerator": "NVIDIA GH200 144GB HBM3e",
+      "driver_version": "580.173.02",
+      "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+      "container_architecture": "arm64",
+      "attention_backend": "FLASH_ATTN",
+      "weight_dtype": "bf16",
+      "kv_cache_dtype": "bf16",
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 1,
+      "gpu_memory_utilization": 0.8,
+      "power_limit_w": 700
+    }
+  },
+  "acceptance_policy": {
+    "doctor_and_runtime_audit_must_both_pass": true,
+    "exact_model_revision_required": true,
+    "exact_model_geometry_required": true,
+    "all_discovered_kv_tensors_must_be_gpu_bf16": true,
+    "no_geometry_substitution_after_failure": true,
+    "failure_requires_review_and_a_new_content_addressed_contract": true
+  },
+  "post_pass_action": "Freeze a Qwen2.5-14B identification grid and a separately unopened holdout before collecting energy outcomes."
+}

@@ -160,6 +160,52 @@ def _weight_storage_report(engine: Any) -> dict[str, Any]:
     }
 
 
+def _model_geometry_report(engine: Any, *, declared_kv_dtype: str) -> dict[str, Any]:
+    """Recover the logical per-token KV geometry from the loaded model config."""
+    model_config = getattr(engine, "model_config", None)
+    hf_config = getattr(model_config, "hf_config", None)
+    if hf_config is None:
+        raise RuntimeError("cannot locate the loaded Hugging Face model config")
+
+    def required_positive_integer(name: str) -> int:
+        value = getattr(hf_config, name, None)
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise RuntimeError(f"loaded model config has invalid {name}: {value!r}")
+        return value
+
+    hidden_size = required_positive_integer("hidden_size")
+    attention_heads = required_positive_integer("num_attention_heads")
+    kv_heads = required_positive_integer("num_key_value_heads")
+    layers = required_positive_integer("num_hidden_layers")
+    configured_head_dim = getattr(hf_config, "head_dim", None)
+    if configured_head_dim is None:
+        if hidden_size % attention_heads:
+            raise RuntimeError("hidden size is not divisible by the attention-head count")
+        head_dim = hidden_size // attention_heads
+    elif (
+        isinstance(configured_head_dim, bool)
+        or not isinstance(configured_head_dim, int)
+        or configured_head_dim <= 0
+    ):
+        raise RuntimeError(f"loaded model config has invalid head_dim: {configured_head_dim!r}")
+    else:
+        head_dim = configured_head_dim
+    element_bytes = {"bf16": 2, "fp8_e4m3": 1}[declared_kv_dtype]
+    logical_kv_bytes = layers * 2 * kv_heads * head_dim * element_bytes
+    return {
+        "hidden_size": hidden_size,
+        "num_hidden_layers": layers,
+        "num_attention_heads": attention_heads,
+        "num_key_value_heads": kv_heads,
+        "head_dim": head_dim,
+        "kv_element_bytes": element_bytes,
+        "logical_kv_bytes_per_attended_token": logical_kv_bytes,
+        "max_position_embeddings": getattr(
+            hf_config, "max_position_embeddings", None
+        ),
+    }
+
+
 def _kv_scale_report(engine: Any, torch: Any) -> dict[str, Any]:
     executor = getattr(engine, "model_executor", None)
     worker = getattr(executor, "driver_worker", None)
@@ -350,6 +396,9 @@ def run_runtime_audit(
         cache["dtypes"], declared_dtype=declared_kv_dtype
     )
     weights = _weight_storage_report(engine)
+    model_geometry = _model_geometry_report(
+        engine, declared_kv_dtype=declared_kv_dtype
+    )
     kv_scales = _kv_scale_report(engine, torch)
     reasons = list(cache_contract["qc_reasons"])
     if cache["gpu_tensor_count"] != cache["tensor_count"]:
@@ -374,6 +423,8 @@ def run_runtime_audit(
         "runtime": {
             "vllm_version": vllm.__version__,
             "engine_module": LLMEngine.__module__,
+            "model": parameters["model"],
+            "model_revision": parameters["model_revision"],
             "attention_backend": attention_backend,
             "weight_dtype": "bfloat16",
             "requested_kv_cache_dtype": requested_kv_dtype,
@@ -388,6 +439,7 @@ def run_runtime_audit(
         "cache": cache,
         "cache_contract": cache_contract,
         "weights": weights,
+        "model_geometry": model_geometry,
         "kv_scales": kv_scales,
         "qc_reasons": reasons,
         "qc_pass": not reasons,
@@ -439,6 +491,7 @@ def main(argv: list[str] | None = None) -> int:
         "cache": {key: value for key, value in report["cache"].items() if key != "tensors"},
         "cache_contract": report["cache_contract"],
         "weights": {key: value for key, value in report["weights"].items() if key != "inventory"},
+        "model_geometry": report["model_geometry"],
         "kv_scales": {
             key: value for key, value in report["kv_scales"].items() if key != "layers"
         },
