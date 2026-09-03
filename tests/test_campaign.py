@@ -25,6 +25,7 @@ EXPECTED = {
     "gh200-v2-duration-holdout.json": (9, 45),
     "gh200-v1-anchors.json": (12, 60),
     "gh200-qwen2p5-14b-qualification.json": (1, 1),
+    "gh200-qwen2p5-14b-qualification-v2.json": (1, 1),
 }
 
 
@@ -66,17 +67,26 @@ class CampaignTests(unittest.TestCase):
         }
         self.assertEqual(modes, {"app-range"})
 
-    def test_qwen14b_qualification_lock_matches_source_exactly(self):
-        source = self.load("gh200-qwen2p5-14b-qualification.json")
-        observed = json.loads(
+    def test_qwen14b_qualification_locks_match_sources_exactly(self):
+        pairs = (
             (
-                ROOT
-                / "results"
-                / "manifests"
-                / "gh200-qwen2p5-14b-qualification.lock.json"
-            ).read_text(encoding="utf-8")
+                "gh200-qwen2p5-14b-qualification.json",
+                "gh200-qwen2p5-14b-qualification.lock.json",
+            ),
+            (
+                "gh200-qwen2p5-14b-qualification-v2.json",
+                "gh200-qwen2p5-14b-qualification-v2.lock.json",
+            ),
         )
-        self.assertEqual(observed, expand_campaign(source))
+        for source_name, lock_name in pairs:
+            with self.subTest(source=source_name):
+                source = self.load(source_name)
+                observed = json.loads(
+                    (ROOT / "results" / "manifests" / lock_name).read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertEqual(observed, expand_campaign(source))
 
     def test_pilot_declared_order_is_rotated_across_repeats(self):
         lock = expand_campaign(self.load("pilot.json"))

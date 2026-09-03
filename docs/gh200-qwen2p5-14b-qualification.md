@@ -2,10 +2,17 @@
 
 This is the first gate for the second-model replication. It is deliberately
 not an energy experiment and cannot enter paper outcomes. It checks the pinned
-model revision, the largest proposed identification geometry, the exact
+model revision, the largest simultaneously admitted identification geometry, the exact
 1024-token decode barrier, the resolved FlashAttention/BF16 runtime, resident
 weight storage, and logical KV geometry. Only a passing report authorizes us to
 freeze the 14B identification and unopened holdout campaigns.
+
+Qualification v1 requested batch 20 at a mean attended history of 16,384.
+The model and backend loaded, but vLLM reported only 16.08x maximum concurrency
+at the frozen maximum length; the full batch therefore could not cross a common
+bootstrap barrier. No energy outcome was measured. The content-addressed v2
+contract changes only the batch from 20 to 16 and preserves that failure as its
+design basis.
 
 ## Restore and inspect the node
 

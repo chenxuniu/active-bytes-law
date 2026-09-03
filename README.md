@@ -113,7 +113,7 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `gh200-primary-bf16.json` | GH200 BF16 coefficient/discrepancy identification | 9 | 5 |
 | `gh200-primary-bf16-evaluation.json` | separately sealed GH200 BF16 evaluation | 6 | 5 |
 | `gh200-v2-duration-holdout.json` | later unopened duration-augmented holdout | 9 | 5 |
-| `gh200-qwen2p5-14b-qualification.json` | non-paper second-model qualification | 1 | 1 |
+| `gh200-qwen2p5-14b-qualification-v2.json` | non-paper second-model qualification | 1 | 1 |
 
 The older generic grids remain design provenance.  The currently executable
 primary path is the checksummed GH200 BF16 V1/identification/evaluation set

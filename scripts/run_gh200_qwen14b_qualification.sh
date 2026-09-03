@@ -16,8 +16,8 @@ repo_root=${TEL_REPO_ROOT:-/srv/token-energy-law/repo}
 results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
 hf_cache=${TEL_HF_CACHE:-/srv/token-energy-law/hf-cache}
 container_home=${TEL_CONTAINER_HOME:-/srv/token-energy-law/container-home}
-campaign_lock="$repo_root/results/manifests/gh200-qwen2p5-14b-qualification.lock.json"
-qualification_contract="$repo_root/configs/addenda/gh200-qwen2p5-14b-qualification-v1.json"
+campaign_lock="$repo_root/results/manifests/gh200-qwen2p5-14b-qualification-v2.lock.json"
+qualification_contract="$repo_root/configs/addenda/gh200-qwen2p5-14b-qualification-v2.json"
 
 if [[ -n "$(git -C "$repo_root" status --short)" ]]; then
   echo "qualification requires a clean repository checkout" >&2
@@ -27,11 +27,11 @@ fi
 
 (
   cd "$repo_root/configs/addenda" || exit 66
-  sha256sum -c gh200-qwen2p5-14b-qualification-v1.json.sha256
+  sha256sum -c gh200-qwen2p5-14b-qualification-v2.json.sha256
 ) || exit $?
 (
   cd "$repo_root/results/manifests" || exit 66
-  sha256sum -c gh200-qwen2p5-14b-qualification.lock.json.sha256
+  sha256sum -c gh200-qwen2p5-14b-qualification-v2.lock.json.sha256
 ) || exit $?
 
 run_contract=$(python3 - "$campaign_lock" <<'PY'
@@ -192,7 +192,7 @@ sudo docker run --rm \
   --entrypoint python3 \
   "$image" \
   /workspace/active-bytes-law/scripts/run_runtime_audit.py \
-  --campaign-lock /workspace/active-bytes-law/results/manifests/gh200-qwen2p5-14b-qualification.lock.json \
+  --campaign-lock /workspace/active-bytes-law/results/manifests/gh200-qwen2p5-14b-qualification-v2.lock.json \
   --run-id "$run_id" \
   --gpu-memory-utilization "$gpu_memory_utilization" \
   --output-json "/workspace/results/$relative_dir/runtime-audit.json" \
@@ -219,7 +219,7 @@ nvidia-smi -i "$gpu_index" \
   --format=csv >"$qualification_dir/gpu.after.csv"
 
 {
-  echo "qualification_id=gh200-qwen2p5-14b-form-replication-qualification-v1"
+  echo "qualification_id=gh200-qwen2p5-14b-form-replication-qualification-v2"
   echo "run_id=$run_id"
   echo "gpu_index=$gpu_index"
   echo "doctor_rc=$doctor_rc"

@@ -17,7 +17,7 @@ class ModelQualificationTests(unittest.TestCase):
                 ROOT
                 / "configs"
                 / "addenda"
-                / "gh200-qwen2p5-14b-qualification-v1.json"
+                / "gh200-qwen2p5-14b-qualification-v2.json"
             ).read_text(encoding="utf-8")
         )
         self.lock = json.loads(
@@ -25,7 +25,7 @@ class ModelQualificationTests(unittest.TestCase):
                 ROOT
                 / "results"
                 / "manifests"
-                / "gh200-qwen2p5-14b-qualification.lock.json"
+                / "gh200-qwen2p5-14b-qualification-v2.lock.json"
             ).read_text(encoding="utf-8")
         )
         expected = self.contract["expected"]
@@ -92,6 +92,10 @@ class ModelQualificationTests(unittest.TestCase):
         self.assertEqual(
             coordinates["kv_read_obligation_bytes_per_useful_token"],
             196608 * 16384,
+        )
+        self.assertEqual(
+            coordinates["weight_read_obligation_bytes_per_useful_token"],
+            30_000_000_000 / 16,
         )
 
     def test_wrong_model_revision_fails_closed(self):
