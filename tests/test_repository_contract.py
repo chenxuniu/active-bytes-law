@@ -38,6 +38,8 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "scripts" / "run_gh200_qwen14b_qualification.sh",
             ROOT / "scripts" / "run_gh200_qwen14b_identification_attempt.sh",
             ROOT / "scripts" / "run_gh200_qwen14b_identification_batch.sh",
+            ROOT / "scripts" / "run_gh200_qwen14b_holdout_attempt.sh",
+            ROOT / "scripts" / "run_gh200_qwen14b_holdout_batch.sh",
         ):
             with self.subTest(script=script):
                 subprocess.run(["bash", "-n", str(script)], check=True)
@@ -107,6 +109,19 @@ class RepositoryContractTests(unittest.TestCase):
                 )
                 self.assertEqual(completed.returncode, 64)
 
+    def test_qwen14b_holdout_batch_rejects_invalid_ranges_and_gpu(self):
+        script = ROOT / "scripts" / "run_gh200_qwen14b_holdout_batch.sh"
+        for arguments in (("0", "30", "0"), ("2", "1", "0"), ("0", "29", "1")):
+            with self.subTest(arguments=arguments):
+                completed = subprocess.run(
+                    [str(script), *arguments],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 64)
+
     def test_calibration_requirements_are_fully_pinned(self):
         requirements = (
             ROOT / "calibration" / "requirements-gh200.txt"
@@ -149,12 +164,26 @@ class RepositoryContractTests(unittest.TestCase):
         release = ROOT / "configs" / "addenda" / OFFICIAL_RELEASE_FILENAME
         self.assertEqual(hashlib.sha256(release.read_bytes()).hexdigest(), OFFICIAL_RELEASE_SHA256)
 
+    def test_qwen14b_holdout_release_digest_is_compiled_into_verifier(self):
+        from active_bytes.model_replication_release import (  # noqa: PLC0415
+            OFFICIAL_RELEASE_FILENAME,
+            OFFICIAL_RELEASE_SHA256,
+        )
+
+        release = ROOT / "configs" / "addenda" / OFFICIAL_RELEASE_FILENAME
+        self.assertEqual(
+            hashlib.sha256(release.read_bytes()).hexdigest(),
+            OFFICIAL_RELEASE_SHA256,
+        )
+
     def test_held_out_evaluator_wrapper_is_executable_and_compiles(self):
         for name in (
             "evaluate_gh200_primary_held_out.py",
             "evaluate_gh200_v2_duration_holdout.py",
             "evaluate_model_qualification.py",
             "freeze_gh200_qwen14b_identification.py",
+            "verify_gh200_qwen14b_holdout_release.py",
+            "evaluate_gh200_qwen14b_holdout.py",
         ):
             script = ROOT / "scripts" / name
             with self.subTest(script=script):

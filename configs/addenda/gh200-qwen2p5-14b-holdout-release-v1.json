@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "release_id": "gh200-qwen2p5-14b-holdout-release-v1",
+  "created_utc": "2026-09-04T16:30:00Z",
+  "decision_stage": "after-identification-freeze-before-any-qwen2p5-14b-holdout-outcome",
+  "form_replication_addendum_sha256": "1dcc42e463b024e45a0553be8a570ab32492db0d0b682a1c34ce6adb647301ef",
+  "identification_campaign": {
+    "campaign_id": "token-energy-law-gh200-qwen2p5-14b-identification-v1",
+    "campaign_lock_sha256": "750255c8c437c9966c1c7cb093b4eb8708c5027dd0edfb1db9c3b4d5b23cf1f2",
+    "campaign_lock_file_sha256": "ba9813ba1357e5831a17e7cc809d38c6ce51359fd0b99944fd1473141643069c",
+    "accepted_run_count": 45,
+    "fit_run_count": 30,
+    "calibration_run_count": 15,
+    "outcome": "gross_gpu_board_joules_per_useful_token"
+  },
+  "identification_freeze": {
+    "relative_to_results_root": "qwen14b-identification-freeze/20260904T161637Z",
+    "backup_archive_sha256": "371ee18915c58b96c3bb3136748359b36dbdb41e32731839fc6c8973cb682965"
+  },
+  "frozen_artifacts": {
+    "coefficient-artifact.json": "136a67985ced7943b3c2c5277220ba6eee6c3f6e379dcf699ad2027c0cd76fbc",
+    "discrepancy-envelope.json": "72311d458ed7e930143ae1d701e11c5bfa74e7089e47cfa7894519d8b05152a7",
+    "accepted-runs.csv": "610e7255d363fb97865d4d49f02697f8d4c5cd9f7dff85b9108a2c1a2aa3f46d",
+    "identification-freeze-summary.json": "401c783e89cc206efdf449e1321ec7ac4f1f0c83906660e1aba39f179270bf86"
+  },
+  "frozen_estimates": {
+    "equation": "E_token = intercept + alpha_weight * weight_decimal_GB_per_token + beta_kv * kv_read_write_decimal_GB_per_token + p_time_W * decode_seconds_per_useful_token",
+    "coefficients": {
+      "intercept_joules_per_token": 0.01786087119372226,
+      "alpha_weight_joules_per_decimal_gb": 0.11265965051031834,
+      "beta_kv_joules_per_decimal_gb": 0.18368241703794386,
+      "p_time_watts": 139.0653335876384
+    },
+    "common_residual_range_joules_per_token": [
+      -0.024700397688645827,
+      0.007720977073234128
+    ]
+  },
+  "identification_decisions": {
+    "identification_gate_pass": true,
+    "traffic_slope_familywise_positivity_pass": true,
+    "time_term_finite_nonnegative_pass": true,
+    "cross_model_form_confirmed": false,
+    "interpretation": "Identification authorizes the unopened test; only the holdout can support second-model form replication. The duration term remains retrospective and non-causal."
+  },
+  "holdout_campaign": {
+    "campaign_id": "token-energy-law-gh200-qwen2p5-14b-holdout-v1",
+    "campaign_lock_sha256": "ab1fcb1be2b8fc44b759a58518caf6567fcaa222064e7396dcf3d7e624b9ba5e",
+    "campaign_lock_file_sha256": "13fe0c9603d911aeb49997c942a10fffc24baf896191e3cf96a53e34b6e73682",
+    "run_count": 30,
+    "cell_count": 6,
+    "repetitions_per_cell": 5,
+    "target_batches": [6, 12],
+    "target_mean_attended_history_tokens": [6144, 12288, 14336]
+  },
+  "primary_gates": {
+    "unit_of_analysis": "cell-mean-over-five-independent-runs",
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.1,
+    "required_cells_passing_ten_percent_error": 6,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_cells_are_not_deleted": true
+  },
+  "residual_envelope_policy": {
+    "report_frozen_common_residual_band_coverage": true,
+    "coverage_is_a_primary_gate": false,
+    "reason": "The parent addendum preregistered the relative-error gates but not a coverage threshold; coverage is therefore descriptive only."
+  },
+  "release_policy": {
+    "released": true,
+    "release_requires_exact_artifact_hashes": true,
+    "holdout_may_not_refit_coefficients": true,
+    "holdout_may_not_recalibrate_the_envelope": true,
+    "duration_uses_observed_same_interval_decode_time": true,
+    "failure_policy": "continue-preserve-failed-attempts",
+    "accepted_attempts_are_never_overwritten": true,
+    "cross_model_claim_requires_primary_holdout_gate_pass": true,
+    "cross_hardware_claim_authorized": false,
+    "dvfs_claim_authorized": false
+  }
+}

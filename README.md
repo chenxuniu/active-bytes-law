@@ -183,9 +183,10 @@ genuinely unopened.
 The qualification passed at the prespecified high-KV geometry. Follow the
 [Qwen2.5-14B identification runbook](docs/gh200-qwen2p5-14b-identification.md)
 to execute the 45 identification runs and freeze the four-coefficient duration
-model. The runbook deliberately provides no holdout execution command: those
-30 outcomes remain unavailable until a content-addressed release binds the
-successful identification artifacts.
+model. At identification freeze time those 30 outcomes remained unavailable.
+A content-addressed release now binds the successful identification artifacts;
+the same runbook records the exact verification, execution, and no-refit
+evaluation commands.
 
 ## Data policy
 

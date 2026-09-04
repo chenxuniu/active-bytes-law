@@ -9,8 +9,9 @@ coefficient equality across models or hardware generality.
 The identification lock contains 45 independent process-level runs: 30 runs
 over six coefficient-fit cells and 15 runs over three residual-calibration
 cells. A separate 30-run holdout lock is already content-addressed, but remains
-`sealed-unreleased`. There is intentionally no executable holdout runner in
-this stage.
+`sealed-unreleased`. The source lock remains sealed; the later release record
+is a separate, content-addressed authorization rather than a mutation of that
+lock.
 
 ## Frozen analysis
 
@@ -152,3 +153,69 @@ sha256sum \
 
 Raw telemetry and logs remain outside Git. Only reviewed, sanitized aggregate
 artifacts should later enter the public repository.
+
+## Released holdout
+
+Identification completed with all 45 runs accepted. The two traffic-slope
+lower bounds were positive, the retrospective duration coefficient was finite
+and nonnegative, and the freeze summary marked the holdout as a release
+candidate. Release record
+`configs/addenda/gh200-qwen2p5-14b-holdout-release-v1.json` binds the exact
+coefficient, residual-envelope, accepted-run, and freeze-summary hashes.
+
+Before measuring a holdout outcome, verify that release against the node-local
+freeze directory:
+
+```bash
+TEL_Q14_FREEZE_DIR=/srv/token-energy-law/results/qwen14b-identification-freeze/20260904T161637Z
+TEL_Q14_VERIFY_DIR=/srv/token-energy-law/results/qwen14b-holdout-release-verifications/manual
+mkdir -p "$TEL_Q14_VERIFY_DIR"
+
+python3 scripts/verify_gh200_qwen14b_holdout_release.py \
+  --release-record configs/addenda/gh200-qwen2p5-14b-holdout-release-v1.json \
+  --identification-freeze-dir "$TEL_Q14_FREEZE_DIR" \
+  --holdout-lock results/manifests/gh200-qwen2p5-14b-holdout.lock.json \
+  --form-replication-addendum configs/addenda/gh200-qwen2p5-14b-form-replication-v1.json \
+  --output-json "$TEL_Q14_VERIFY_DIR/release-verification.json"
+```
+
+Validate order 0 manually:
+
+```bash
+./scripts/run_gh200_qwen14b_holdout_attempt.sh 0 0
+```
+
+Only after its final alignment passes, execute orders 1--29 under tmux:
+
+```bash
+tmux new -s tel-q14-holdout
+cd /srv/token-energy-law/repo
+sudo -v
+./scripts/run_gh200_qwen14b_holdout_batch.sh 1 29 0
+```
+
+The batch preserves failed attempts, continues to later frozen orders, and
+returns nonzero if any order remains unaccepted. Rerunning the same inclusive
+range skips accepted attempts and retries the missing orders.
+
+After all 30 holdout runs are accepted, evaluate without refitting:
+
+```bash
+TEL_Q14_EVAL_TAG=$(date -u +%Y%m%dT%H%M%SZ)
+TEL_Q14_EVAL_DIR="/srv/token-energy-law/results/qwen14b-holdout-analysis/${TEL_Q14_EVAL_TAG}"
+
+python3 scripts/evaluate_gh200_qwen14b_holdout.py \
+  --campaign-lock results/manifests/gh200-qwen2p5-14b-holdout.lock.json \
+  --release-record configs/addenda/gh200-qwen2p5-14b-holdout-release-v1.json \
+  --identification-freeze-dir "$TEL_Q14_FREEZE_DIR" \
+  --form-replication-addendum configs/addenda/gh200-qwen2p5-14b-form-replication-v1.json \
+  --results-root /srv/token-energy-law/results \
+  --output-dir "$TEL_Q14_EVAL_DIR"
+```
+
+The primary result requires all six cell means to have at most 10% absolute
+relative error and the median cell error to be at most 5%. Frozen residual-band
+coverage is reported descriptively because the parent addendum did not make it
+a primary gate. No outcome from this campaign authorizes universal
+coefficients, cross-hardware transfer, DVFS conclusions, or a causal
+interpretation of the duration term.
