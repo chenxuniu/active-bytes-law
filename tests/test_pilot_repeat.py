@@ -6,6 +6,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from active_bytes.pilot_repeat import (  # noqa: E402
+    _model_geometry,
     validate_episode_observations,
     validate_scheduler_delta,
 )
@@ -33,6 +34,24 @@ def valid_observations(request_ids, measured=2):
 
 
 class PilotRepeatTests(unittest.TestCase):
+    def test_model_geometry_derives_head_dim_when_config_value_is_none(self):
+        class Config:
+            hidden_size = 4096
+            num_attention_heads = 32
+            num_key_value_heads = 8
+            num_hidden_layers = 32
+            head_dim = None
+
+        class ModelConfig:
+            hf_config = Config()
+
+        class Engine:
+            model_config = ModelConfig()
+
+        report = _model_geometry(Engine(), "bf16")
+        self.assertEqual(report["head_dim"], 128)
+        self.assertEqual(report["kv_bytes_per_historical_token"], 131072)
+
     def test_scheduler_snapshot_accepts_deque_swap_queue(self):
         class Scheduler:
             num_cumulative_preemption = 0

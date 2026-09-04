@@ -182,7 +182,13 @@ def _model_geometry(engine: Any, declared_kv_dtype: str) -> dict[str, Any]:
     attention_heads = int(hf_config.num_attention_heads)
     kv_heads = int(hf_config.num_key_value_heads)
     hidden_size = int(hf_config.hidden_size)
-    head_dim = int(getattr(hf_config, "head_dim", hidden_size // attention_heads))
+    configured_head_dim = getattr(hf_config, "head_dim", None)
+    if configured_head_dim is None:
+        if hidden_size % attention_heads:
+            raise RuntimeError("hidden size is not divisible by the attention-head count")
+        head_dim = hidden_size // attention_heads
+    else:
+        head_dim = int(configured_head_dim)
     bytes_per_element = 2 if declared_kv_dtype == "bf16" else 1
     return {
         "num_hidden_layers": layers,
