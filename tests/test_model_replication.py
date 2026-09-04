@@ -75,6 +75,14 @@ class ModelReplicationTests(unittest.TestCase):
         self.assertLess(fit["coefficients"]["p_time_watts"], 0.0)
         self.assertFalse(fit["time_term"]["finite_nonnegative_qc_pass"])
 
+    def test_analysis_identity_can_be_bound_by_a_replication_addendum(self):
+        fit = fit_duration_ols_hc3(
+            synthetic_rows(), analysis_id="mistral7b-duration-identification-v1"
+        )
+        self.assertEqual(
+            fit["analysis_id"], "mistral7b-duration-identification-v1"
+        )
+
     def test_calibration_envelope_has_one_interval_per_cell(self):
         fit = fit_duration_ols_hc3(synthetic_rows())
         rows = []

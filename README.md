@@ -119,6 +119,8 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `gh200-qwen2p5-14b-identification.json` | second-model duration-form identification/calibration | 9 | 5 |
 | `gh200-qwen2p5-14b-holdout.json` | sealed second-model form-replication holdout | 6 | 5 |
 | `gh200-mistral7b-qualification-v1.json` | non-energy architecture-replication qualification | 1 | 1 |
+| `gh200-mistral7b-identification.json` | architecture-diverse duration-form identification/calibration | 9 | 5 |
+| `gh200-mistral7b-holdout.json` | sealed architecture-diverse form-replication holdout | 6 | 5 |
 
 The older generic grids remain design provenance.  The currently executable
 primary path is the checksummed GH200 BF16 V1/identification/evaluation set
@@ -190,11 +192,14 @@ the same runbook records the exact verification, execution, and no-refit
 evaluation commands.
 
 The Qwen2.5-14B sealed holdout passed its primary form-replication gate. The
-next frozen step is the non-energy
+next frozen step was the non-energy
 [Mistral-7B architecture qualification](docs/gh200-mistral7b-qualification.md).
-It tests runtime feasibility and audits model/KV geometry only. A pass does not
-enter the paper as an energy outcome; it authorizes design and freezing of a
-new identification campaign and a disjoint unopened holdout.
+It passed with 14.504 GB of unique weight storage and 131,072 logical KV bytes
+per attended token. That pass is not an energy outcome. It authorizes the
+[Mistral-7B identification runbook](docs/gh200-mistral7b-identification.md): a
+45-run identification/calibration campaign is now frozen, and its disjoint
+30-run holdout remains sealed and unexecutable until the identification
+artifacts are frozen and bound by a separate release record.
 
 ## Data policy
 

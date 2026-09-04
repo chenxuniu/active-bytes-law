@@ -52,7 +52,10 @@ def _prediction(row: Mapping[str, Any], coefficients: Mapping[str, Any]) -> floa
     )
 
 
-def fit_duration_ols_hc3(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+def fit_duration_ols_hc3(
+    rows: Sequence[Mapping[str, Any]],
+    analysis_id: str = "qwen14b-duration-identification-v1",
+) -> dict[str, Any]:
     parameter_count = len(PREDICTOR_NAMES)
     if len(rows) <= parameter_count:
         raise ValueError("the four-parameter fit requires more than four runs")
@@ -120,7 +123,7 @@ def fit_duration_ols_hc3(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         for residual, value in zip(residuals, outcome)
     ]
     return {
-        "analysis_id": "qwen14b-duration-identification-v1",
+        "analysis_id": analysis_id,
         "estimator": "unweighted run-level OLS with HC3 covariance",
         "outcome": OUTCOME,
         "predictor_names": list(PREDICTOR_NAMES),
@@ -238,12 +241,25 @@ def freeze_model_replication_identification(
     results_root: Path,
     output_dir: Path,
 ) -> dict[str, Any]:
+    addendum = json.loads(addendum_path.read_text(encoding="utf-8"))
+    runtime = addendum.get("replication_runtime", {})
+    result_domain = str(runtime.get("result_domain", "qwen14b-identification"))
+    measurement_prefix = str(
+        runtime.get("measurement_prefix", "gh200-qwen2p5-14b")
+    )
+    analysis_id = str(
+        runtime.get(
+            "analysis_id",
+            addendum.get("analysis_policy", {}).get(
+                "analysis_id", "qwen14b-duration-identification-v1"
+            ),
+        )
+    )
     lock, rows, issues = collect_identification_rows(
         campaign_lock_path,
         results_root,
-        result_domain="qwen14b-identification",
+        result_domain=result_domain,
     )
-    addendum = json.loads(addendum_path.read_text(encoding="utf-8"))
     addendum_sha = sha256_file(addendum_path)
     expected_addendum_shas = {
         str(run["parameters"].get("execution_addendum_sha256"))
@@ -259,7 +275,11 @@ def freeze_model_replication_identification(
     if expected_qualification_shas != {evidence["qualification_summary_sha256"]}:
         issues.append("qualification summary digest does not match every run")
 
-    expected_counts = {FIT_SPLIT: 30, CALIBRATION_SPLIT: 15}
+    design = addendum["identification_design"]
+    expected_counts = {
+        FIT_SPLIT: int(design["coefficient_fit"]["run_count"]),
+        CALIBRATION_SPLIT: int(design["residual_calibration"]["run_count"]),
+    }
     observed_counts = {
         split: sum(row["split"] == split for row in rows)
         for split in expected_counts
@@ -283,7 +303,7 @@ def freeze_model_replication_identification(
     if issues:
         report = {
             "schema_version": 1,
-            "measurement": "gh200-qwen2p5-14b-identification-freeze",
+            "measurement": f"{measurement_prefix}-identification-freeze",
             "accepted_run_count": len(rows),
             "issues": issues,
             "qc_pass": False,
@@ -293,12 +313,12 @@ def freeze_model_replication_identification(
 
     fit_rows = [row for row in rows if row["split"] == FIT_SPLIT]
     calibration_rows = [row for row in rows if row["split"] == CALIBRATION_SPLIT]
-    fit = fit_duration_ols_hc3(fit_rows)
+    fit = fit_duration_ols_hc3(fit_rows, analysis_id=analysis_id)
     bundle_sha = _alignment_bundle_sha(rows)
     output_dir.mkdir(parents=True, exist_ok=True)
     coefficient_artifact = {
         "schema_version": 1,
-        "measurement": "gh200-qwen2p5-14b-duration-coefficient-artifact",
+        "measurement": f"{measurement_prefix}-duration-coefficient-artifact",
         "campaign_id": lock["campaign_id"],
         "campaign_lock_sha256": lock["lock_sha256"],
         "campaign_lock_file_sha256": sha256_file(campaign_lock_path),
@@ -320,7 +340,7 @@ def freeze_model_replication_identification(
     envelope = duration_calibration_envelope(calibration_rows, fit)
     envelope_artifact = {
         "schema_version": 1,
-        "measurement": "gh200-qwen2p5-14b-duration-discrepancy-envelope",
+        "measurement": f"{measurement_prefix}-duration-discrepancy-envelope",
         "campaign_id": lock["campaign_id"],
         "campaign_lock_sha256": lock["lock_sha256"],
         "alignment_bundle_sha256": bundle_sha,
@@ -343,7 +363,7 @@ def freeze_model_replication_identification(
     scientific_gate = traffic_gate and time_gate
     summary = {
         "schema_version": 1,
-        "measurement": "gh200-qwen2p5-14b-identification-freeze",
+        "measurement": f"{measurement_prefix}-identification-freeze",
         "campaign_id": lock["campaign_id"],
         "campaign_lock_sha256": lock["lock_sha256"],
         "accepted_run_count": len(rows),

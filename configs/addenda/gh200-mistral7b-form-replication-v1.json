@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "addendum_id": "gh200-mistral7b-form-replication-v1",
+  "created_utc": "2026-09-04T23:20:00Z",
+  "decision_stage": "after-model-qualification-before-any-mistral7b-energy-outcome",
+  "purpose": "Test whether the duration-augmented Token-Energy functional form can be independently identified and predict unopened coordinates for an architecture-diverse model on the same GH200 runtime stratum.",
+  "qualification_evidence": {
+    "qualification_id": "gh200-mistral7b-architecture-replication-qualification-v1",
+    "qualification_result_relative_to_results_root": "model-qualification/mistral7b-v0p3/qualification-20260904T225306Z",
+    "qualification_repository_commit": "a6e5482a6706f6bbb2f4ba4729f39aeca7421608",
+    "qualification_contract_sha256": "f2d0f1f4775cb21e49040ef7eb5a7c6db715e3b398d778cde0133472af209369",
+    "qualification_lock_file_sha256": "84ba1fb14d0989817ed2a4c14dfdd4bad94f39cb5bd0732ef482514c80251d0a",
+    "qualification_lock_sha256": "b25917bf87719ffa52aba41912b835ce8090d26a2c7c3e2d5e7f823ac7fbb032",
+    "qualification_summary_sha256": "2f1b2e8c7458302c50f6af65c2f8906d3120c4f6b015fd6b8eac0f5bcc6409da",
+    "batch_doctor_sha256": "ac67a127ff1afb1527986d7ca32ba0b87bbe29ac2739eb51afa5691eda563260",
+    "runtime_audit_sha256": "4e7c35075d6c7f2db020464453c78a9cc7dde2320af7eb1693b51999d099bf39",
+    "artifacts_index_sha256": "6ec02b30b4c36790ff6beee6ddca7ac8fdb7ddf5e13c380317c790fd6eb987d6",
+    "qc_pass": true,
+    "energy_measurement": false,
+    "observed_unique_weight_storage_bytes": 14504435712,
+    "observed_logical_kv_bytes_per_attended_token": 131072,
+    "observed_extreme_decode_seconds": 30.852703248
+  },
+  "scope": {
+    "model": "mistralai/Mistral-7B-Instruct-v0.3",
+    "model_revision": "c170c708c41dac9275d15a8fff4eca08d52bab71",
+    "accelerator": "NVIDIA GH200 144GB HBM3e",
+    "driver_version": "580.173.02",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "attention_backend": "FLASH_ATTN",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "power_limit_w": 700
+  },
+  "replication_runtime": {
+    "result_domain": "mistral7b-identification",
+    "measurement_prefix": "gh200-mistral7b",
+    "analysis_id": "mistral7b-duration-identification-v1"
+  },
+  "identification_design": {
+    "coefficient_fit": {
+      "target_mean_attended_history_tokens": [4096, 10240, 16384],
+      "target_batch": [4, 16],
+      "cell_count": 6,
+      "repetitions_per_cell": 5,
+      "run_count": 30
+    },
+    "residual_calibration": {
+      "target_mean_attended_history_tokens": [4096, 10240, 16384],
+      "target_batch": [8],
+      "cell_count": 3,
+      "repetitions_per_cell": 5,
+      "run_count": 15
+    },
+    "total_run_count": 45,
+    "randomized_cyclic_execution": true
+  },
+  "sealed_holdout_design": {
+    "target_mean_attended_history_tokens": [6144, 12288, 14336],
+    "target_batch": [6, 12],
+    "cell_count": 6,
+    "repetitions_per_cell": 5,
+    "run_count": 30,
+    "coordinates_absent_from_identification": true,
+    "execution_state": "sealed-unreleased",
+    "release_requires_frozen_identification_artifacts": true
+  },
+  "execution_policy": {
+    "gpu_index": 0,
+    "gpu_memory_utilization": 0.8,
+    "requested_api_output_tokens": 1025,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 1024,
+    "minimum_episode_decode_seconds": 5,
+    "minimum_repeat_decode_seconds": 30,
+    "prompt_length_policy": "balanced-exact-target-mean",
+    "chunked_prefill": false,
+    "cpu_offload_gb": 0,
+    "swap_space_gb": 0,
+    "prefix_caching": false,
+    "speculation": false,
+    "failed_identification_run_stops_the_batch": true,
+    "accepted_runs_are_never_overwritten": true
+  },
+  "measurement_policy": {
+    "primary_outcome": "gross_gpu_board_joules_per_useful_token",
+    "primary_energy_scope": "gpu-board-nvml-scope-0-instantaneous-integral",
+    "secondary_energy_scope": "gh200-module-nvml-scope-1-and-counter",
+    "maximum_aligned_sampling_gap_ms": 50,
+    "maximum_module_counter_relative_error": 0.02,
+    "global_collector_gap_outside_all_decode_intervals_does_not_censor_an_aligned_repeat": true,
+    "idle_subtraction": false
+  },
+  "analysis_policy": {
+    "analysis_id": "mistral7b-duration-identification-v1",
+    "unit_of_fit": "accepted-independent-run",
+    "fit_split_only": "coefficient-fit",
+    "equation": "E_token = intercept + alpha_weight * weight_decimal_GB_per_token + beta_kv * kv_read_write_decimal_GB_per_token + p_time_W * decode_seconds_per_useful_token",
+    "estimator": "unweighted ordinary least squares with HC3 covariance",
+    "predictors": [
+      "intercept",
+      "weight_decimal_GB_per_token",
+      "kv_read_write_decimal_GB_per_token",
+      "decode_seconds_per_useful_token"
+    ],
+    "traffic_slope_gate": "Bonferroni familywise one-sided 0.05 lower bounds for alpha_weight and beta_kv must both exceed zero",
+    "time_term_gate": "p_time_W point estimate must be finite and nonnegative; it is a nuisance coefficient and is not interpreted as literal idle power",
+    "residual_calibration": "three prespecified batch-8 cell-mean residual intervals using Bonferroni Student-t familywise gamma 0.05",
+    "coefficient_equality_across_models_required": false,
+    "zero_shot_qwen_coefficient_transfer": "secondary-diagnostic-only"
+  },
+  "holdout_gates": {
+    "unit_of_analysis": "cell mean over five independent runs",
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.10,
+    "required_cells_passing_ten_percent_error": 6,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_cells_are_not_deleted": true
+  },
+  "claim_policy": {
+    "identification_alone_confirms_cross_architecture_form": false,
+    "passing_unopened_holdout_supports": "same functional form with newly identified coefficients for an architecture-diverse model on the pinned GH200 software and measurement stack over the tested interpolation domain",
+    "not_authorized": [
+      "universal coefficients",
+      "zero-shot coefficient portability from either Qwen stratum",
+      "cross-hardware coefficient transfer",
+      "advance latency prediction from the retrospective duration term",
+      "causal interpretation of p_time_W as literal idle power",
+      "DVFS conclusions"
+    ]
+  }
+}

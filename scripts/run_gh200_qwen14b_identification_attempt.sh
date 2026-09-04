@@ -8,29 +8,31 @@ fi
 
 run_order=$1
 gpu_index=${2:-0}
+replication_name=${TEL_REPLICATION_NAME:-Qwen2.5-14B}
+run_count=${TEL_REPLICATION_RUN_COUNT:-45}
 if [[ "$gpu_index" != "0" ]]; then
-  echo "the frozen Qwen2.5-14B identification campaign is bound to GPU index 0" >&2
+  echo "the frozen $replication_name identification campaign is bound to GPU index 0" >&2
   exit 64
 fi
-if [[ ! "$run_order" =~ ^[0-9]+$ ]] || (( run_order < 0 || run_order >= 45 )); then
-  echo "RUN_ORDER must be an integer from 0 through 44" >&2
+if [[ ! "$run_order" =~ ^[0-9]+$ ]] || (( run_order < 0 || run_order >= run_count )); then
+  echo "RUN_ORDER must be an integer from 0 through $((run_count - 1))" >&2
   exit 64
 fi
 
 repo_root=${TEL_REPO_ROOT:-/srv/token-energy-law/repo}
 results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
-campaign_lock="$repo_root/results/manifests/gh200-qwen2p5-14b-identification.lock.json"
-execution_addendum="$repo_root/configs/addenda/gh200-qwen2p5-14b-form-replication-v1.json"
-qualification_dir="$results_root/model-qualification/qwen2p5-14b/qualification-20260903T202328Z"
-result_domain=qwen14b-identification
+campaign_lock=${TEL_REPLICATION_CAMPAIGN_LOCK:-$repo_root/results/manifests/gh200-qwen2p5-14b-identification.lock.json}
+execution_addendum=${TEL_REPLICATION_ADDENDUM:-$repo_root/configs/addenda/gh200-qwen2p5-14b-form-replication-v1.json}
+qualification_dir=${TEL_REPLICATION_QUALIFICATION_DIR:-$results_root/model-qualification/qwen2p5-14b/qualification-20260903T202328Z}
+result_domain=${TEL_REPLICATION_RESULT_DOMAIN:-qwen14b-identification}
 
 (
-  cd "$repo_root/configs/addenda"
-  sha256sum -c gh200-qwen2p5-14b-form-replication-v1.json.sha256
+  cd "$(dirname "$execution_addendum")"
+  sha256sum -c "$(basename "$execution_addendum").sha256"
 )
 (
-  cd "$repo_root/results/manifests"
-  sha256sum -c gh200-qwen2p5-14b-identification.lock.json.sha256
+  cd "$(dirname "$campaign_lock")"
+  sha256sum -c "$(basename "$campaign_lock").sha256"
 )
 
 python3 - "$execution_addendum" "$qualification_dir" <<'PY'
@@ -138,8 +140,9 @@ export TEL_RESULT_DOMAIN="$result_domain"
 export TEL_REQUIRE_CLEAN_REPO=1
 export TEL_EXTRA_CONTRACTS="$qualification_dir/qualification-summary.json:$qualification_dir/batch-doctor.json:$qualification_dir/runtime-audit.json:$qualification_dir/artifacts.sha256"
 
-echo "frozen_qwen14b_identification_order=$run_order"
-echo "frozen_qwen14b_identification_run_id=$run_id"
+echo "frozen_replication_identification_name=$replication_name"
+echo "frozen_replication_identification_order=$run_order"
+echo "frozen_replication_identification_run_id=$run_id"
 
 exec "$repo_root/scripts/run_gh200_pilot_attempt.sh" \
   "$run_id" \

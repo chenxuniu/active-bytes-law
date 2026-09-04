@@ -9,9 +9,11 @@ fi
 start_order=$1
 end_order=$2
 gpu_index=${3:-0}
+replication_name=${TEL_REPLICATION_NAME:-Qwen2.5-14B}
+run_count=${TEL_REPLICATION_RUN_COUNT:-45}
 for value in "$start_order" "$end_order"; do
-  if [[ ! "$value" =~ ^[0-9]+$ ]] || (( value < 0 || value >= 45 )); then
-    echo "orders must be integers from 0 through 44" >&2
+  if [[ ! "$value" =~ ^[0-9]+$ ]] || (( value < 0 || value >= run_count )); then
+    echo "orders must be integers from 0 through $((run_count - 1))" >&2
     exit 64
   fi
 done
@@ -20,15 +22,17 @@ if (( start_order > end_order )); then
   exit 64
 fi
 if [[ "$gpu_index" != "0" ]]; then
-  echo "the frozen Qwen2.5-14B identification campaign is bound to GPU index 0" >&2
+  echo "the frozen $replication_name identification campaign is bound to GPU index 0" >&2
   exit 64
 fi
 
 repo_root=${TEL_REPO_ROOT:-/srv/token-energy-law/repo}
 results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
-campaign_lock="$repo_root/results/manifests/gh200-qwen2p5-14b-identification.lock.json"
+campaign_lock=${TEL_REPLICATION_CAMPAIGN_LOCK:-$repo_root/results/manifests/gh200-qwen2p5-14b-identification.lock.json}
 attempt_runner=${TEL_Q14_IDENTIFICATION_ATTEMPT_RUNNER:-$repo_root/scripts/run_gh200_qwen14b_identification_attempt.sh}
-result_domain=qwen14b-identification
+result_domain=${TEL_REPLICATION_RESULT_DOMAIN:-qwen14b-identification}
+batch_domain=${TEL_REPLICATION_BATCH_DOMAIN:-qwen14b-identification-batch-runs}
+batch_measurement=${TEL_REPLICATION_BATCH_MEASUREMENT:-gh200-qwen2p5-14b-identification-batch-execution-summary}
 locked_campaign_sha=$(python3 - "$campaign_lock" <<'PY'
 import json
 import sys
@@ -37,7 +41,7 @@ PY
 )
 
 if [[ -n "$(git -C "$repo_root" status --short)" ]]; then
-  echo "Qwen2.5-14B identification requires a clean repository checkout" >&2
+  echo "$replication_name identification requires a clean repository checkout" >&2
   git -C "$repo_root" status --short >&2
   exit 65
 fi
@@ -47,7 +51,7 @@ if [[ ! -x "$attempt_runner" ]]; then
 fi
 
 batch_tag="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-batch_dir="$results_root/qwen14b-identification-batch-runs/orders-${start_order}-${end_order}/batch-$batch_tag"
+batch_dir="$results_root/$batch_domain/orders-${start_order}-${end_order}/batch-$batch_tag"
 mkdir -p "$batch_dir"
 batch_log="$batch_dir/batch.events.log"
 batch_summary="$batch_dir/batch.summary.json"
@@ -108,7 +112,7 @@ from datetime import datetime, timezone
 path = pathlib.Path(sys.argv[1])
 report = {
     "schema_version": 1,
-    "measurement": "gh200-qwen2p5-14b-identification-batch-execution-summary",
+    "measurement": os.environ["TEL_BATCH_MEASUREMENT"],
     "completed_at_utc": datetime.now(timezone.utc).isoformat(),
     "status": sys.argv[2],
     "start_order": int(sys.argv[3]),
@@ -132,6 +136,8 @@ emit "gpu_index=$gpu_index"
 emit "repository_commit=$(git -C "$repo_root" rev-parse HEAD)"
 emit "batch_dir=$batch_dir"
 emit "failure_policy=stop-preserve-retry-same-order"
+
+export TEL_BATCH_MEASUREMENT="$batch_measurement"
 
 accepted_count=0
 skipped_count=0

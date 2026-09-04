@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "campaign_id": "token-energy-law-gh200-mistral7b-identification-v1",
+  "seed": 20260905,
+  "randomize_cell_order": true,
+  "defaults": {
+    "model": "mistralai/Mistral-7B-Instruct-v0.3",
+    "model_id": "mistral7b-v0p3",
+    "model_revision": "c170c708c41dac9275d15a8fff4eca08d52bab71",
+    "accelerator_class": "NVIDIA GH200 144GB HBM3e",
+    "measurement_profile": "gh200-scoped-nvml-v1",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "attention_backend": "FLASH_ATTN",
+    "vllm_version_components": [0, 10, 1, 1],
+    "vllm_local_version": "381074ae.nv25.09",
+    "driver_version": "580.173.02",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "requested_api_output_tokens": 1025,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 1024,
+    "prompt_length_policy": "balanced-exact-target-mean",
+    "temperature": 0,
+    "ignore_eos": true,
+    "prefix_cache": false,
+    "speculative_decode": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "power_limit_w": 700,
+    "primary_energy_scope": "gpu-board-nvml-scope-0-instantaneous-integral",
+    "secondary_energy_scope": "gh200-module-nvml-scope-1-and-counter",
+    "resolved_kv_tensor_dtype_must_match_cell": true,
+    "minimum_episode_decode_seconds": 5,
+    "minimum_decode_seconds_per_repeat": 30,
+    "gpu_memory_utilization": 0.8,
+    "execution_addendum_sha256": "a005722d431040499a131de5482a175f85365dccc84d182ba93f3e2c9e8c9743",
+    "qualification_summary_sha256": "2f1b2e8c7458302c50f6af65c2f8906d3120c4f6b015fd6b8eac0f5bcc6409da",
+    "repetitions": 5
+  },
+  "blocks": [
+    {
+      "block_id": "mistral7b-duration-coefficient-fit",
+      "split": "coefficient-fit",
+      "cells": [
+        {"cell_id": "m7-qf-l4096-b4", "target_mean_attended_history_tokens": 4096, "target_batch": 4},
+        {"cell_id": "m7-qf-l4096-b16", "target_mean_attended_history_tokens": 4096, "target_batch": 16},
+        {"cell_id": "m7-qf-l10240-b4", "target_mean_attended_history_tokens": 10240, "target_batch": 4},
+        {"cell_id": "m7-qf-l10240-b16", "target_mean_attended_history_tokens": 10240, "target_batch": 16},
+        {"cell_id": "m7-qf-l16384-b4", "target_mean_attended_history_tokens": 16384, "target_batch": 4},
+        {"cell_id": "m7-qf-l16384-b16", "target_mean_attended_history_tokens": 16384, "target_batch": 16}
+      ]
+    },
+    {
+      "block_id": "mistral7b-duration-residual-calibration",
+      "split": "residual-calibration",
+      "cells": [
+        {"cell_id": "m7-qc-l4096-b8", "target_mean_attended_history_tokens": 4096, "target_batch": 8},
+        {"cell_id": "m7-qc-l10240-b8", "target_mean_attended_history_tokens": 10240, "target_batch": 8},
+        {"cell_id": "m7-qc-l16384-b8", "target_mean_attended_history_tokens": 16384, "target_batch": 8}
+      ]
+    }
+  ]
+}
