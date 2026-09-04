@@ -152,7 +152,9 @@ def evaluate_model_qualification(
 
     return {
         "schema_version": 1,
-        "measurement": "gh200-qwen2p5-14b-model-qualification",
+        "measurement": contract.get(
+            "measurement", "gh200-qwen2p5-14b-model-qualification"
+        ),
         "qualification_id": contract.get("qualification_id"),
         "energy_measurement": False,
         "may_enter_paper_outcomes": False,

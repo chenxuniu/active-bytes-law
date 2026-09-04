@@ -17,12 +17,13 @@ historical context. We also track the new-token KV write,
 
 This repository is the public experiment contract and artifact index for the
 paper. The completed Qwen2.5-7B/GH200 campaigns establish one
-platform--model--runtime instantiation; they do not by themselves establish a
-cross-model or cross-platform law. The Qwen2.5-14B/GH200 qualification has
-passed without measuring energy. Its 45-run identification campaign and a
-disjoint 30-run holdout are now frozen; the holdout remains sealed until the
-identification coefficients and residual envelope pass their prespecified
-gates and are bound by a separate release.
+platform--model--runtime instantiation. A separately identified and sealed
+Qwen2.5-14B/GH200 replication subsequently passed all prespecified primary
+holdout gates: all six cells were below 10% error, the maximum error was 1.92%,
+and the median error was 0.13%. This supports the same functional form with
+newly identified coefficients on a second model, but not universal
+coefficients or cross-platform transfer. A non-energy Mistral-7B qualification
+is frozen as the next architecture-level replication gate.
 
 ## What is ready
 
@@ -49,9 +50,8 @@ The primary energy interval begins only after prefill, CUDA synchronization,
 and the `DECODE_READY -> GO` handshake; it ends after the exact frozen number of
 useful decode iterations. A client-wide serving benchmark that contains prefill
 is retrospective evidence, not confirmatory Active-Bytes data. The remaining
-scientific boundary is external validity: a second model must reproduce the
-functional form under newly identified coefficients before the paper can make
-a cross-model claim.
+scientific boundary is broader external validity: replication outside the Qwen
+family and, separately, on another hardware/runtime stratum.
 
 ## Start here on the measurement node
 
@@ -118,6 +118,7 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `gh200-qwen2p5-14b-qualification-v2.json` | non-paper second-model qualification | 1 | 1 |
 | `gh200-qwen2p5-14b-identification.json` | second-model duration-form identification/calibration | 9 | 5 |
 | `gh200-qwen2p5-14b-holdout.json` | sealed second-model form-replication holdout | 6 | 5 |
+| `gh200-mistral7b-qualification-v1.json` | non-energy architecture-replication qualification | 1 | 1 |
 
 The older generic grids remain design provenance.  The currently executable
 primary path is the checksummed GH200 BF16 V1/identification/evaluation set
@@ -187,6 +188,13 @@ model. At identification freeze time those 30 outcomes remained unavailable.
 A content-addressed release now binds the successful identification artifacts;
 the same runbook records the exact verification, execution, and no-refit
 evaluation commands.
+
+The Qwen2.5-14B sealed holdout passed its primary form-replication gate. The
+next frozen step is the non-energy
+[Mistral-7B architecture qualification](docs/gh200-mistral7b-qualification.md).
+It tests runtime feasibility and audits model/KV geometry only. A pass does not
+enter the paper as an energy outcome; it authorizes design and freezing of a
+new identification campaign and a disjoint unopened holdout.
 
 ## Data policy
 

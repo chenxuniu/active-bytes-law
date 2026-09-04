@@ -28,6 +28,7 @@ EXPECTED = {
     "gh200-qwen2p5-14b-qualification-v2.json": (1, 1),
     "gh200-qwen2p5-14b-identification.json": (9, 45),
     "gh200-qwen2p5-14b-holdout.json": (6, 30),
+    "gh200-mistral7b-qualification-v1.json": (1, 1),
 }
 
 
@@ -143,6 +144,18 @@ class CampaignTests(unittest.TestCase):
             },
             {True},
         )
+
+    def test_mistral7b_qualification_lock_matches_source_exactly(self):
+        source = self.load("gh200-mistral7b-qualification-v1.json")
+        observed = json.loads(
+            (
+                ROOT
+                / "results"
+                / "manifests"
+                / "gh200-mistral7b-qualification-v1.lock.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(observed, expand_campaign(source))
 
     def test_pilot_declared_order_is_rotated_across_repeats(self):
         lock = expand_campaign(self.load("pilot.json"))

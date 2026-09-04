@@ -116,3 +116,16 @@ class ModelQualificationTests(unittest.TestCase):
         runtime["model_geometry"]["logical_kv_bytes_per_attended_token"] = 98304
         report = self.evaluate(runtime=runtime)
         self.assertFalse(report["qc_pass"])
+
+    def test_contract_can_select_a_model_specific_measurement_name(self):
+        contract = deepcopy(self.contract)
+        contract["measurement"] = "gh200-mistral7b-model-qualification"
+        report = evaluate_model_qualification(
+            contract=contract,
+            campaign_lock=self.lock,
+            doctor=self.doctor,
+            runtime_audit=self.runtime,
+        )
+        self.assertEqual(
+            report["measurement"], "gh200-mistral7b-model-qualification"
+        )

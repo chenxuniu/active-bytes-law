@@ -16,8 +16,19 @@ repo_root=${TEL_REPO_ROOT:-/srv/token-energy-law/repo}
 results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
 hf_cache=${TEL_HF_CACHE:-/srv/token-energy-law/hf-cache}
 container_home=${TEL_CONTAINER_HOME:-/srv/token-energy-law/container-home}
-campaign_lock="$repo_root/results/manifests/gh200-qwen2p5-14b-qualification-v2.lock.json"
-qualification_contract="$repo_root/configs/addenda/gh200-qwen2p5-14b-qualification-v2.json"
+campaign_lock=${TEL_QUALIFICATION_CAMPAIGN_LOCK:-"$repo_root/results/manifests/gh200-qwen2p5-14b-qualification-v2.lock.json"}
+qualification_contract=${TEL_QUALIFICATION_CONTRACT:-"$repo_root/configs/addenda/gh200-qwen2p5-14b-qualification-v2.json"}
+qualification_result_subdir=${TEL_QUALIFICATION_RESULT_SUBDIR:-qwen2p5-14b}
+qualification_id=${TEL_QUALIFICATION_ID:-gh200-qwen2p5-14b-form-replication-qualification-v2}
+qualification_name_prefix=${TEL_QUALIFICATION_NAME_PREFIX:-tel-q14}
+
+case "$campaign_lock" in
+  "$repo_root"/*) campaign_lock_relative=${campaign_lock#"$repo_root/"} ;;
+  *)
+    echo "qualification campaign lock must be below the repository root" >&2
+    exit 65
+    ;;
+esac
 
 if [[ -n "$(git -C "$repo_root" status --short)" ]]; then
   echo "qualification requires a clean repository checkout" >&2
@@ -112,8 +123,8 @@ if [[ "$observed_image_id" != "$expected_image_id" || "$observed_architecture" !
 fi
 
 tag=$(date -u +%Y%m%dT%H%M%SZ)
-qualification_dir="$results_root/model-qualification/qwen2p5-14b/qualification-$tag"
-relative_dir="model-qualification/qwen2p5-14b/qualification-$tag"
+qualification_dir="$results_root/model-qualification/$qualification_result_subdir/qualification-$tag"
+relative_dir="model-qualification/$qualification_result_subdir/qualification-$tag"
 mkdir -p "$qualification_dir" "$hf_cache" "$container_home"
 
 doctor_json="$qualification_dir/batch-doctor.json"
@@ -121,8 +132,8 @@ doctor_log="$qualification_dir/batch-doctor.log"
 runtime_json="$qualification_dir/runtime-audit.json"
 runtime_log="$qualification_dir/runtime-audit.log"
 summary_json="$qualification_dir/qualification-summary.json"
-doctor_name="tel-q14-doctor-$tag"
-runtime_name="tel-q14-runtime-$tag"
+doctor_name="$qualification_name_prefix-doctor-$tag"
+runtime_name="$qualification_name_prefix-runtime-$tag"
 
 cleanup() {
   sudo docker rm -f "$doctor_name" "$runtime_name" >/dev/null 2>&1 || true
@@ -192,7 +203,7 @@ sudo docker run --rm \
   --entrypoint python3 \
   "$image" \
   /workspace/active-bytes-law/scripts/run_runtime_audit.py \
-  --campaign-lock /workspace/active-bytes-law/results/manifests/gh200-qwen2p5-14b-qualification-v2.lock.json \
+  --campaign-lock "/workspace/active-bytes-law/$campaign_lock_relative" \
   --run-id "$run_id" \
   --gpu-memory-utilization "$gpu_memory_utilization" \
   --output-json "/workspace/results/$relative_dir/runtime-audit.json" \
@@ -219,7 +230,7 @@ nvidia-smi -i "$gpu_index" \
   --format=csv >"$qualification_dir/gpu.after.csv"
 
 {
-  echo "qualification_id=gh200-qwen2p5-14b-form-replication-qualification-v2"
+  echo "qualification_id=$qualification_id"
   echo "run_id=$run_id"
   echo "gpu_index=$gpu_index"
   echo "doctor_rc=$doctor_rc"
