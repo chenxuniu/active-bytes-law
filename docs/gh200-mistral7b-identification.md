@@ -24,11 +24,12 @@ Identification contains 45 independent process-level runs:
 - 15 residual-calibration runs at the same histories and batch 8, with five
   repetitions.
 
-The unopened holdout is already content-addressed but remains
+At design time, the unopened holdout was content-addressed as
 `sealed-unreleased`: histories 6,144, 12,288, and 14,336 crossed with batches 6
-and 12, with five repetitions, for 30 runs. No holdout runner or release record
-is provided at this stage. Identification results cannot change those
-coordinates or primary gates.
+and 12, with five repetitions, for 30 runs. Identification results could not
+change those coordinates or primary gates. After all 45 identification runs
+passed their prespecified gates, a separate release record bound the exact
+frozen artifacts and authorized execution without changing the source lock.
 
 The primary outcome is gross scope-0 GPU-board joules per useful token. The
 frozen model is
@@ -143,9 +144,71 @@ python3 scripts/freeze_gh200_mistral7b_identification.py \
 
 Only a QC-passing freeze with positive familywise lower bounds for both traffic
 slopes and a finite nonnegative time term becomes a holdout-release candidate.
-A later commit must bind the exact coefficient, discrepancy-envelope,
-accepted-run-table, and freeze-summary hashes before any of the 30 holdout runs
-can execute.
+A release commit binds the exact coefficient, discrepancy-envelope,
+accepted-run-table, freeze-summary, and backup-archive hashes before any of the
+30 holdout runs can execute.
+
+## Released holdout
+
+The identification freeze passed with 45 accepted runs, positive familywise
+lower bounds for both traffic slopes, and a finite nonnegative retrospective
+duration coefficient. Release record
+`configs/addenda/gh200-mistral7b-holdout-release-v1.json` binds the frozen
+artifacts and the original sealed holdout lock.
+
+Verify the release against the node-local freeze directory before measuring an
+outcome:
+
+```bash
+TEL_M7_FREEZE_DIR=/srv/token-energy-law/results/mistral7b-identification-freeze/20260905T050600Z
+TEL_M7_VERIFY_DIR=/srv/token-energy-law/results/mistral7b-holdout-release-verifications/manual
+mkdir -p "$TEL_M7_VERIFY_DIR"
+
+python3 scripts/verify_gh200_mistral7b_holdout_release.py \
+  --release-record configs/addenda/gh200-mistral7b-holdout-release-v1.json \
+  --identification-freeze-dir "$TEL_M7_FREEZE_DIR" \
+  --holdout-lock results/manifests/gh200-mistral7b-holdout.lock.json \
+  --form-replication-addendum configs/addenda/gh200-mistral7b-form-replication-v1.json \
+  --output-json "$TEL_M7_VERIFY_DIR/release-verification.json"
+```
+
+Validate order 0 manually:
+
+```bash
+./scripts/run_gh200_mistral7b_holdout_attempt.sh 0 0
+```
+
+Only after its final alignment passes, execute orders 1--29 under tmux:
+
+```bash
+tmux new -s tel-mistral-holdout
+cd /srv/token-energy-law/repo
+sudo -v
+./scripts/run_gh200_mistral7b_holdout_batch.sh 1 29 0
+```
+
+The batch preserves failed attempts, continues to later frozen orders, and
+returns nonzero if any order remains unaccepted. Rerunning the same inclusive
+range skips accepted attempts and retries missing orders.
+
+After all 30 holdout runs are accepted, evaluate without refitting:
+
+```bash
+TEL_M7_EVAL_TAG=$(date -u +%Y%m%dT%H%M%SZ)
+TEL_M7_EVAL_DIR="/srv/token-energy-law/results/mistral7b-holdout-analysis/${TEL_M7_EVAL_TAG}"
+
+python3 scripts/evaluate_gh200_mistral7b_holdout.py \
+  --campaign-lock results/manifests/gh200-mistral7b-holdout.lock.json \
+  --release-record configs/addenda/gh200-mistral7b-holdout-release-v1.json \
+  --identification-freeze-dir "$TEL_M7_FREEZE_DIR" \
+  --form-replication-addendum configs/addenda/gh200-mistral7b-form-replication-v1.json \
+  --results-root /srv/token-energy-law/results \
+  --output-dir "$TEL_M7_EVAL_DIR"
+```
+
+The primary result requires all six cell means to have at most 10% absolute
+relative error and the median cell error to be at most 5%. No coefficient or
+residual-envelope update is permitted before this decision.
 
 ## Claim boundary
 

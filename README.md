@@ -195,11 +195,12 @@ The Qwen2.5-14B sealed holdout passed its primary form-replication gate. The
 next frozen step was the non-energy
 [Mistral-7B architecture qualification](docs/gh200-mistral7b-qualification.md).
 It passed with 14.504 GB of unique weight storage and 131,072 logical KV bytes
-per attended token. That pass is not an energy outcome. It authorizes the
-[Mistral-7B identification runbook](docs/gh200-mistral7b-identification.md): a
-45-run identification/calibration campaign is now frozen, and its disjoint
-30-run holdout remains sealed and unexecutable until the identification
-artifacts are frozen and bound by a separate release record.
+per attended token. That pass is not an energy outcome. The subsequent 45-run
+identification/calibration campaign passed its prespecified gates. The
+[Mistral-7B runbook](docs/gh200-mistral7b-identification.md) now records the
+content-addressed release of its disjoint 30-run holdout; its frozen
+coefficients may not be refit or its residual envelope recalibrated after a
+holdout outcome is observed.
 
 ## Data policy
 

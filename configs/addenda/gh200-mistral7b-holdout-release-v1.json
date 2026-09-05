@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "release_id": "gh200-mistral7b-holdout-release-v1",
+  "created_utc": "2026-09-05T05:12:00Z",
+  "decision_stage": "after-identification-freeze-before-any-mistral7b-holdout-outcome",
+  "form_replication_addendum_sha256": "a005722d431040499a131de5482a175f85365dccc84d182ba93f3e2c9e8c9743",
+  "replication_runtime": {
+    "result_domain": "mistral7b-holdout",
+    "output_prefix": "mistral7b-holdout",
+    "release_verification_measurement": "gh200-mistral7b-holdout-release-verification",
+    "evaluation_measurement": "gh200-mistral7b-held-out-form-evaluation",
+    "form_replication_gate_name": "mistral7b_form_replication_pass"
+  },
+  "identification_campaign": {
+    "campaign_id": "token-energy-law-gh200-mistral7b-identification-v1",
+    "campaign_lock_sha256": "f9304dc3c245b2552d2f7bfa60e98eb637a02502fbaec2ea5589b38e8c0ee1a3",
+    "campaign_lock_file_sha256": "601de96f16a7c5f18b0c58d1a9aec6d8b1179a9975da20f772c1db2cf7f04f9d",
+    "accepted_run_count": 45,
+    "fit_run_count": 30,
+    "calibration_run_count": 15,
+    "outcome": "gross_gpu_board_joules_per_useful_token"
+  },
+  "identification_freeze": {
+    "relative_to_results_root": "mistral7b-identification-freeze/20260905T050600Z",
+    "backup_archive_sha256": "e96e15dd04f85d33847229c3bf60d5bdf1d57bbd016aa5d94af999022a249f4d"
+  },
+  "frozen_artifacts": {
+    "coefficient-artifact.json": "0c4adb607371ef5a855b36a9b07cc454fc9eb659f3d6dfdb0dcd17f5bdb091dc",
+    "discrepancy-envelope.json": "851323b93e89dcd0ac030d5a5215d823f770110846f50a30ae96e9901e5db1e0",
+    "accepted-runs.csv": "9307508de1eef5651c2e559c791c38df764b1e80f03a426bfb3c4c14b8ba6622",
+    "identification-freeze-summary.json": "30e14d85f999be65edb7283630bdeab159d035373127cd1d59557e84e5c9a2dc"
+  },
+  "frozen_estimates": {
+    "equation": "E_token = intercept + alpha_weight * weight_decimal_GB_per_token + beta_kv * kv_read_write_decimal_GB_per_token + p_time_W * decode_seconds_per_useful_token",
+    "coefficients": {
+      "intercept_joules_per_token": 0.009455030996243785,
+      "alpha_weight_joules_per_decimal_gb": 0.11442302099101065,
+      "beta_kv_joules_per_decimal_gb": 0.18248772460675688,
+      "p_time_watts": 138.4305285182145
+    },
+    "common_residual_range_joules_per_token": [
+      -0.011210699381573425,
+      0.001981984020563183
+    ]
+  },
+  "identification_decisions": {
+    "identification_gate_pass": true,
+    "traffic_slope_familywise_positivity_pass": true,
+    "time_term_finite_nonnegative_pass": true,
+    "cross_model_form_confirmed": false,
+    "interpretation": "Identification authorizes the unopened test; only the holdout can support architecture-diverse form replication. The duration term remains retrospective and non-causal."
+  },
+  "holdout_campaign": {
+    "campaign_id": "token-energy-law-gh200-mistral7b-holdout-v1",
+    "campaign_lock_sha256": "ccc64db6884ba6df374f869a8d899f9ce4d6c88884437279dd514bcc5949b0d3",
+    "campaign_lock_file_sha256": "0e869436c3d7304c826887e17c72693e0c9cbcc0c455d3180fc7de98d136a274",
+    "run_count": 30,
+    "cell_count": 6,
+    "repetitions_per_cell": 5,
+    "target_batches": [6, 12],
+    "target_mean_attended_history_tokens": [6144, 12288, 14336]
+  },
+  "primary_gates": {
+    "unit_of_analysis": "cell-mean-over-five-independent-runs",
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.1,
+    "required_cells_passing_ten_percent_error": 6,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_cells_are_not_deleted": true
+  },
+  "residual_envelope_policy": {
+    "report_frozen_common_residual_band_coverage": true,
+    "coverage_is_a_primary_gate": false,
+    "reason": "The parent addendum preregistered the relative-error gates but not a coverage threshold; coverage is therefore descriptive only."
+  },
+  "release_policy": {
+    "released": true,
+    "release_requires_exact_artifact_hashes": true,
+    "holdout_may_not_refit_coefficients": true,
+    "holdout_may_not_recalibrate_the_envelope": true,
+    "duration_uses_observed_same_interval_decode_time": true,
+    "failure_policy": "continue-preserve-failed-attempts",
+    "accepted_attempts_are_never_overwritten": true,
+    "cross_model_claim_requires_primary_holdout_gate_pass": true,
+    "cross_hardware_claim_authorized": false,
+    "dvfs_claim_authorized": false
+  }
+}

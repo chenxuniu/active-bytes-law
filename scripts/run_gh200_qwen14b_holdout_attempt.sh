@@ -8,39 +8,43 @@ fi
 
 run_order=$1
 gpu_index=${2:-0}
+replication_name=${TEL_REPLICATION_NAME:-Qwen2.5-14B}
+run_count=${TEL_REPLICATION_RUN_COUNT:-30}
 if [[ "$gpu_index" != "0" ]]; then
-  echo "the released Qwen2.5-14B holdout is bound to GPU index 0" >&2
+  echo "the released $replication_name holdout is bound to GPU index 0" >&2
   exit 64
 fi
-if [[ ! "$run_order" =~ ^[0-9]+$ ]] || (( run_order < 0 || run_order >= 30 )); then
-  echo "RUN_ORDER must be an integer from 0 through 29" >&2
+if [[ ! "$run_order" =~ ^[0-9]+$ ]] || (( run_order < 0 || run_order >= run_count )); then
+  echo "RUN_ORDER must be an integer from 0 through $((run_count - 1))" >&2
   exit 64
 fi
 
 repo_root=${TEL_REPO_ROOT:-/srv/token-energy-law/repo}
 results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
-campaign_lock="$repo_root/results/manifests/gh200-qwen2p5-14b-holdout.lock.json"
-execution_addendum="$repo_root/configs/addenda/gh200-qwen2p5-14b-form-replication-v1.json"
-release_record="$repo_root/configs/addenda/gh200-qwen2p5-14b-holdout-release-v1.json"
-freeze_dir=${TEL_Q14_IDENTIFICATION_FREEZE_DIR:-$results_root/qwen14b-identification-freeze/20260904T161637Z}
-result_domain=qwen14b-holdout
+campaign_lock=${TEL_REPLICATION_CAMPAIGN_LOCK:-$repo_root/results/manifests/gh200-qwen2p5-14b-holdout.lock.json}
+execution_addendum=${TEL_REPLICATION_ADDENDUM:-$repo_root/configs/addenda/gh200-qwen2p5-14b-form-replication-v1.json}
+release_record=${TEL_REPLICATION_RELEASE_RECORD:-$repo_root/configs/addenda/gh200-qwen2p5-14b-holdout-release-v1.json}
+freeze_dir=${TEL_REPLICATION_IDENTIFICATION_FREEZE_DIR:-${TEL_Q14_IDENTIFICATION_FREEZE_DIR:-$results_root/qwen14b-identification-freeze/20260904T161637Z}}
+result_domain=${TEL_REPLICATION_RESULT_DOMAIN:-qwen14b-holdout}
+verification_domain=${TEL_REPLICATION_VERIFICATION_DOMAIN:-qwen14b-holdout-release-verifications}
+verification_script=${TEL_REPLICATION_VERIFICATION_SCRIPT:-$repo_root/scripts/verify_gh200_qwen14b_holdout_release.py}
 
 (
-  cd "$repo_root/configs/addenda"
-  sha256sum -c gh200-qwen2p5-14b-form-replication-v1.json.sha256
-  sha256sum -c gh200-qwen2p5-14b-holdout-release-v1.json.sha256
+  cd "$(dirname "$execution_addendum")"
+  sha256sum -c "$(basename "$execution_addendum").sha256"
+  sha256sum -c "$(basename "$release_record").sha256"
 )
 (
-  cd "$repo_root/results/manifests"
-  sha256sum -c gh200-qwen2p5-14b-holdout.lock.json.sha256
+  cd "$(dirname "$campaign_lock")"
+  sha256sum -c "$(basename "$campaign_lock").sha256"
 )
 
 verification_tag=$(date -u +%Y%m%dT%H%M%SZ)
-verification_dir="$results_root/qwen14b-holdout-release-verifications"
+verification_dir="$results_root/$verification_domain"
 verification_json="$verification_dir/release-verification-${verification_tag}-order-${run_order}.json"
 mkdir -p "$verification_dir"
 
-python3 "$repo_root/scripts/verify_gh200_qwen14b_holdout_release.py" \
+python3 "$verification_script" \
   --release-record "$release_record" \
   --identification-freeze-dir "$freeze_dir" \
   --holdout-lock "$campaign_lock" \
@@ -112,8 +116,9 @@ export TEL_RESULT_DOMAIN="$result_domain"
 export TEL_REQUIRE_CLEAN_REPO=1
 export TEL_EXTRA_CONTRACTS="$release_record:$freeze_dir/coefficient-artifact.json:$freeze_dir/discrepancy-envelope.json:$freeze_dir/accepted-runs.csv:$freeze_dir/identification-freeze-summary.json:$verification_json"
 
-echo "released_qwen14b_holdout_order=$run_order"
-echo "released_qwen14b_holdout_run_id=$run_id"
+echo "released_replication_name=$replication_name"
+echo "released_replication_holdout_order=$run_order"
+echo "released_replication_holdout_run_id=$run_id"
 echo "holdout_release_verification=$verification_json"
 
 exec "$repo_root/scripts/run_gh200_pilot_attempt.sh" \

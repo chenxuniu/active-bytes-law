@@ -1,4 +1,4 @@
-"""Evaluate the released Qwen2.5-14B holdout without refitting."""
+"""Evaluate a released model-replication holdout without refitting."""
 
 from __future__ import annotations
 
@@ -42,6 +42,7 @@ def evaluate_replication_rows(
     *,
     expected_cells: int,
     expected_repeats: int,
+    form_replication_gate_name: str = "qwen2p5_14b_form_replication_pass",
 ) -> dict[str, Any]:
     intercept = float(coefficients["intercept_joules_per_token"])
     alpha = float(coefficients["alpha_weight_joules_per_decimal_gb"])
@@ -172,7 +173,7 @@ def evaluate_replication_rows(
             "median_absolute_relative_error_pass": median_pass,
             "maximum_absolute_relative_error_pass": maximum_pass,
             "required_cell_count_pass": count_pass,
-            "qwen2p5_14b_form_replication_pass": scientific_pass,
+            form_replication_gate_name: scientific_pass,
             "residual_band_coverage_is_a_primary_gate": False,
         },
     }
@@ -186,6 +187,26 @@ def evaluate_campaign(
     results_root: Path,
     output_dir: Path,
 ) -> dict[str, Any]:
+    release: Mapping[str, Any] = {}
+    try:
+        release = json.loads(release_record_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    runtime = release.get("replication_runtime", {})
+    result_domain = str(runtime.get("result_domain", "qwen14b-holdout"))
+    output_prefix = str(runtime.get("output_prefix", "qwen14b-holdout"))
+    evaluation_measurement = str(
+        runtime.get(
+            "evaluation_measurement",
+            "gh200-qwen2p5-14b-held-out-form-evaluation",
+        )
+    )
+    form_replication_gate_name = str(
+        runtime.get(
+            "form_replication_gate_name",
+            "qwen2p5_14b_form_replication_pass",
+        )
+    )
     release_verification = verify_model_replication_release(
         release_record_path,
         identification_freeze_dir,
@@ -195,7 +216,7 @@ def evaluate_campaign(
     lock, rows, issues = collect_identification_rows(
         campaign_lock_path,
         results_root,
-        result_domain="qwen14b-holdout",
+        result_domain=result_domain,
     )
     if release_verification.get("qc_pass") is not True:
         issues.extend(
@@ -219,12 +240,12 @@ def evaluate_campaign(
     if issues:
         report = {
             "schema_version": 1,
-            "measurement": "gh200-qwen2p5-14b-held-out-form-evaluation",
+            "measurement": evaluation_measurement,
             "accepted_run_count": len(rows),
             "issues": issues,
             "qc_pass": False,
         }
-        _atomic_json(output_dir / "qwen14b-holdout-summary.json", report)
+        _atomic_json(output_dir / f"{output_prefix}-summary.json", report)
         return report
 
     release = json.loads(release_record_path.read_text(encoding="utf-8"))
@@ -247,9 +268,10 @@ def evaluate_campaign(
         expected_repeats=int(
             release["holdout_campaign"]["repetitions_per_cell"]
         ),
+        form_replication_gate_name=form_replication_gate_name,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
-    runs_path = output_dir / "qwen14b-holdout-runs.csv"
+    runs_path = output_dir / f"{output_prefix}-runs.csv"
     with runs_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(analysis["runs"][0].keys()))
         writer.writeheader()
@@ -258,7 +280,7 @@ def evaluate_campaign(
         {key: value for key, value in row.items() if not isinstance(value, (list, dict))}
         for row in analysis["cells"]
     ]
-    cells_path = output_dir / "qwen14b-holdout-cells.csv"
+    cells_path = output_dir / f"{output_prefix}-cells.csv"
     with cells_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(scalar_cells[0].keys()))
         writer.writeheader()
@@ -266,7 +288,7 @@ def evaluate_campaign(
 
     report = {
         "schema_version": 1,
-        "measurement": "gh200-qwen2p5-14b-held-out-form-evaluation",
+        "measurement": evaluation_measurement,
         "campaign_id": lock["campaign_id"],
         "campaign_lock_sha256": lock["lock_sha256"],
         "alignment_bundle_sha256": _alignment_bundle_sha(rows),
@@ -284,7 +306,7 @@ def evaluate_campaign(
         },
         "claim_boundary": {
             "cross_model_form_supported": analysis["gates"][
-                "qwen2p5_14b_form_replication_pass"
+                form_replication_gate_name
             ],
             "universal_coefficients_supported": False,
             "cross_hardware_generalization_supported": False,
@@ -293,7 +315,7 @@ def evaluate_campaign(
         "issues": [],
         "qc_pass": True,
     }
-    report_path = output_dir / "qwen14b-holdout-evaluation.json"
+    report_path = output_dir / f"{output_prefix}-evaluation.json"
     _atomic_json(report_path, report)
     summary = {
         "schema_version": 1,
@@ -313,7 +335,7 @@ def evaluate_campaign(
         },
         "qc_pass": True,
     }
-    _atomic_json(output_dir / "qwen14b-holdout-summary.json", summary)
+    _atomic_json(output_dir / f"{output_prefix}-summary.json", summary)
     return summary
 
 

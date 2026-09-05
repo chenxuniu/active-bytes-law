@@ -1,4 +1,4 @@
-"""Fail-closed verification of the Qwen2.5-14B holdout release."""
+"""Fail-closed verification of content-addressed model holdout releases."""
 
 from __future__ import annotations
 
@@ -21,6 +21,17 @@ OFFICIAL_RELEASE_FILENAME = "gh200-qwen2p5-14b-holdout-release-v1.json"
 OFFICIAL_RELEASE_SHA256 = (
     "7b9b9adcdc9a40b5e60e02f176cc18ecfd78242779da6f2a631457094857051d"
 )
+ADDITIONAL_OFFICIAL_RELEASES: dict[str, str] = {
+    "gh200-mistral7b-holdout-release-v1.json": (
+        "a940f1f5be086b155d71886003c242dcc337f403d85258a9e6dabe45d68b7d00"
+    )
+}
+
+
+def _official_release_digest(filename: str) -> str | None:
+    if filename == OFFICIAL_RELEASE_FILENAME:
+        return OFFICIAL_RELEASE_SHA256
+    return ADDITIONAL_OFFICIAL_RELEASES.get(filename)
 
 
 def _atomic_json(path: Path, value: Mapping[str, Any]) -> None:
@@ -54,10 +65,18 @@ def verify_model_replication_release(
         }
 
     release_sha = sha256_file(release_record_path)
-    if release_record_path.name != OFFICIAL_RELEASE_FILENAME:
-        issues.append("holdout release record does not have the official filename")
-    if release_sha != OFFICIAL_RELEASE_SHA256:
+    expected_release_sha = _official_release_digest(release_record_path.name)
+    if expected_release_sha is None:
+        issues.append("holdout release record does not have an official filename")
+    elif release_sha != expected_release_sha:
         issues.append("official holdout release record digest mismatch")
+    runtime = release.get("replication_runtime", {})
+    verification_measurement = str(
+        runtime.get(
+            "release_verification_measurement",
+            "gh200-qwen2p5-14b-holdout-release-verification",
+        )
+    )
     addendum_sha = sha256_file(form_replication_addendum_path)
     if addendum_sha != release.get(
         "form_replication_addendum_sha256"
@@ -248,7 +267,7 @@ def verify_model_replication_release(
 
     return {
         "schema_version": 1,
-        "measurement": "gh200-qwen2p5-14b-holdout-release-verification",
+        "measurement": verification_measurement,
         "release_id": release.get("release_id"),
         "release_record_sha256": release_sha,
         "identification_freeze_dir": str(identification_freeze_dir),
