@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "campaign_id": "token-energy-law-gh200-tp2-nvlink-holdout-v1",
+  "seed": 20260908,
+  "randomize_cell_order": true,
+  "defaults": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "model_id": "qwen2p5-7b",
+    "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "accelerator_class": "two NVIDIA GH200 144GB HBM3e devices",
+    "host_gpu_indices": [0, 1],
+    "required_inter_gpu_topology": "NV18",
+    "measurement_profile": "gh200-tp2-summed-scoped-nvml-v1",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "attention_backend": "FLASH_ATTN",
+    "vllm_version_components": [0, 10, 1, 1],
+    "vllm_local_version": "381074ae.nv25.09",
+    "driver_version": "580.173.02",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "tensor_parallel_size": 2,
+    "pipeline_parallel_size": 1,
+    "accounting_total_weight_storage_bytes": 15239621632,
+    "expected_logical_kv_bytes_per_attended_token": 57344,
+    "requested_api_output_tokens": 1025,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 1024,
+    "prompt_length_policy": "balanced-exact-target-mean",
+    "temperature": 0,
+    "ignore_eos": true,
+    "prefix_cache": false,
+    "speculative_decode": false,
+    "cpu_kv_offload": false,
+    "swap": false,
+    "power_limit_w": 700,
+    "gpu_memory_utilization": 0.8,
+    "minimum_episode_decode_seconds": 2,
+    "minimum_decode_seconds_per_repeat": 30,
+    "primary_energy_scope": "sum-two-gpu-board-scope-0-instantaneous-integrals",
+    "secondary_energy_scope": "sum-two-module-scope-1-integrals-and-counters",
+    "execution_addendum_sha256": "88e93cce1b06a811be9f0abd7f63f55d590c203e65f6aeeb9fcb845571f80d17",
+    "requires_frozen_identification_release": true,
+    "execution_state": "sealed-unreleased",
+    "paper_candidate_measurement": true,
+    "repetitions": 5
+  },
+  "blocks": [
+    {
+      "block_id": "gh200-tp2-sealed-holdout",
+      "split": "evaluation",
+      "cells": [
+        {"cell_id": "tp2-qe-l6144-b8", "target_mean_attended_history_tokens": 6144, "target_batch": 8},
+        {"cell_id": "tp2-qe-l6144-b24", "target_mean_attended_history_tokens": 6144, "target_batch": 24},
+        {"cell_id": "tp2-qe-l12288-b8", "target_mean_attended_history_tokens": 12288, "target_batch": 8},
+        {"cell_id": "tp2-qe-l12288-b24", "target_mean_attended_history_tokens": 12288, "target_batch": 24},
+        {"cell_id": "tp2-qe-l14336-b8", "target_mean_attended_history_tokens": 14336, "target_batch": 8},
+        {"cell_id": "tp2-qe-l14336-b24", "target_mean_attended_history_tokens": 14336, "target_batch": 24}
+      ]
+    }
+  ]
+}

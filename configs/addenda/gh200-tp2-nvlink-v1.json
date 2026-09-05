@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "addendum_id": "gh200-tp2-nvlink-v1",
+  "created_utc": "2026-09-05T21:53:19Z",
+  "decision_stage": "before-any-tp2-energy-outcome",
+  "purpose": "Test the duration-augmented Token-Energy functional form in a distinct two-GH200 tensor-parallel stratum, with both physical-device energies measured over one common decode boundary.",
+  "source_evidence": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "model_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "single_gpu_duration_model_artifact": {
+      "path": "configs/addenda/gh200-v2-duration-holdout-v1.json",
+      "sha256": "350c92325a3636c7267449c8c2202d03b17c1b7be66fa95e47a45fc6ef6ce745"
+    },
+    "single_gpu_result_is_design_evidence_only": true,
+    "single_gpu_coefficients_must_not_be_used_as_tp2_primary_predictions": true,
+    "audited_full_model_weight_storage_bytes": 15239621632,
+    "audited_logical_kv_bytes_per_attended_token": 57344
+  },
+  "stratum": {
+    "accelerator_pair": "two NVIDIA GH200 144GB HBM3e devices in one node",
+    "host_gpu_indices": [0, 1],
+    "expected_inter_gpu_topology": "NV18",
+    "tensor_parallel_size": 2,
+    "pipeline_parallel_size": 1,
+    "parallel_runtime": "vLLM V0 tensor parallel with NCCL",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "container_architecture": "arm64",
+    "driver_version": "580.173.02",
+    "attention_backend": "FLASH_ATTN",
+    "weight_dtype": "bf16",
+    "kv_cache_dtype": "bf16",
+    "power_limit_w_per_gpu": 700,
+    "dvfs_manipulation": false,
+    "clock_policy": "reset application clocks before qualification; do not lock or sweep clocks",
+    "co_run_policy": "both physical GPUs must have at most 16 MiB allocated immediately before every attempt"
+  },
+  "qualification_design": {
+    "paper_candidate_measurement": false,
+    "purpose": "Feasibility and meter-boundary admission only; qualification energies never enter a fit, gate, or paper outcome.",
+    "target_mean_attended_history_tokens": [4096, 10240, 16384],
+    "target_batch": [8, 16, 32],
+    "paired_cells": [[4096, 8], [10240, 16], [16384, 32]],
+    "repetitions_per_cell": 1,
+    "required_accepted_runs": 3,
+    "minimum_episode_decode_seconds": 2,
+    "minimum_repeat_decode_seconds": 10
+  },
+  "identification_design": {
+    "paper_candidate_measurement": true,
+    "coefficient_fit": {
+      "target_mean_attended_history_tokens": [4096, 10240, 16384],
+      "target_batch": [4, 32],
+      "cell_count": 6,
+      "repetitions_per_cell": 5,
+      "run_count": 30
+    },
+    "residual_calibration": {
+      "target_mean_attended_history_tokens": [4096, 10240, 16384],
+      "target_batch": [16],
+      "cell_count": 3,
+      "repetitions_per_cell": 5,
+      "run_count": 15
+    },
+    "total_run_count": 45,
+    "randomized_cyclic_execution": true,
+    "qualification_gate": "all three qualification runs must have exactly one accepted alignment under the frozen qualification lock"
+  },
+  "sealed_holdout_design": {
+    "target_mean_attended_history_tokens": [6144, 12288, 14336],
+    "target_batch": [8, 24],
+    "cell_count": 6,
+    "repetitions_per_cell": 5,
+    "run_count": 30,
+    "coordinates_absent_from_identification": true,
+    "execution_state": "sealed-unreleased",
+    "release_requires_content_addressed_identification_artifacts": true
+  },
+  "execution_policy": {
+    "gpu_memory_utilization_per_worker": 0.8,
+    "requested_api_output_tokens": 1025,
+    "unmetered_bootstrap_tokens_per_request": 1,
+    "metered_decode_tokens_per_request": 1024,
+    "minimum_episode_decode_seconds_for_paper_runs": 2,
+    "minimum_repeat_decode_seconds_for_paper_runs": 30,
+    "prompt_length_policy": "balanced-exact-target-mean",
+    "chunked_prefill": false,
+    "cpu_offload_gb": 0,
+    "swap_space_gb": 0,
+    "prefix_caching": false,
+    "speculation": false,
+    "failed_attempts_are_preserved": true,
+    "batch_failure_policy": "continue-preserve-failed-attempts",
+    "accepted_attempts_are_never_overwritten": true
+  },
+  "measurement_policy": {
+    "primary_outcome": "sum_two_gpu_boards_joules_per_useful_token",
+    "primary_energy_scope": "sum of scope-0 instantaneous-power integrals from both visible GH200 devices over identical go/done monotonic boundaries",
+    "secondary_energy_scope": "sum of two scope-1 module instantaneous-power integrals and two independent cumulative-energy counters",
+    "device_level_qc_is_required": true,
+    "maximum_aligned_sampling_gap_ms": 50,
+    "maximum_module_counter_relative_error_per_device": 0.02,
+    "maximum_module_counter_relative_error_for_sum": 0.02,
+    "idle_subtraction": false,
+    "single_device_energy_is_not_a_tp2_outcome": true,
+    "nvlink_energy_is_not_separately_attributed": true
+  },
+  "analysis_policy": {
+    "analysis_id": "gh200-tp2-duration-identification-v1",
+    "unit_of_fit": "accepted-independent-run",
+    "fit_split_only": "coefficient-fit",
+    "equation": "E_pair_token = intercept_tp2 + alpha_tp2 * weight_decimal_GB_per_token + beta_tp2 * kv_read_write_decimal_GB_per_token + p_time_tp2_W * decode_seconds_per_useful_token",
+    "estimator": "unweighted ordinary least squares with HC3 covariance",
+    "traffic_slope_gate": "Bonferroni familywise one-sided 0.05 lower bounds for alpha_tp2 and beta_tp2 must both exceed zero",
+    "time_term_gate": "p_time_tp2_W must be finite and nonnegative and is not literal idle power",
+    "communication_policy": "TP=2 is a separate execution stratum. NVLink/NCCL traffic may change fitted coefficients or residuals, but no communication coefficient is identifiable from this fixed-TP model and none may be added after outcomes are seen.",
+    "single_gpu_coefficient_transfer": "descriptive secondary diagnostic only",
+    "coefficient_equality_with_tp1_required": false
+  },
+  "holdout_gates": {
+    "unit_of_analysis": "cell mean over five independent runs",
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.1,
+    "required_cells_passing_ten_percent_error": 6,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_cells_are_not_deleted": true
+  },
+  "claim_policy": {
+    "identification_alone_confirms_tp2_form": false,
+    "passing_unopened_holdout_supports": "the same duration-augmented functional form with TP2-specific coefficients in the pinned two-GH200 NV18 stratum over the tested interpolation domain",
+    "not_authorized": [
+      "universal coefficients",
+      "zero-shot TP1-to-TP2 coefficient portability",
+      "separate causal attribution of NVLink or NCCL energy",
+      "cross-node or cross-SKU transfer",
+      "tensor-parallel degrees other than two",
+      "advance latency prediction without a separate duration predictor",
+      "causal interpretation of the time coefficient as literal idle power",
+      "DVFS conclusions"
+    ]
+  }
+}

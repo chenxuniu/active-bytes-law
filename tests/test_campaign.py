@@ -32,6 +32,9 @@ EXPECTED = {
     "gh200-mistral7b-identification.json": (9, 45),
     "gh200-mistral7b-holdout.json": (6, 30),
     "gh200-gpu1-same-sku-transfer.json": (9, 45),
+    "gh200-tp2-nvlink-qualification.json": (3, 3),
+    "gh200-tp2-nvlink-identification.json": (9, 45),
+    "gh200-tp2-nvlink-holdout.json": (6, 30),
 }
 
 
@@ -232,6 +235,70 @@ class CampaignTests(unittest.TestCase):
                 for run in observed["run_order"]
             },
             {"released-zero-shot-no-refit"},
+        )
+
+    def test_tp2_locks_are_exact_and_holdout_is_disjoint_and_sealed(self):
+        expanded = {}
+        for source_name, lock_name in (
+            (
+                "gh200-tp2-nvlink-qualification.json",
+                "gh200-tp2-nvlink-qualification.lock.json",
+            ),
+            (
+                "gh200-tp2-nvlink-identification.json",
+                "gh200-tp2-nvlink-identification.lock.json",
+            ),
+            (
+                "gh200-tp2-nvlink-holdout.json",
+                "gh200-tp2-nvlink-holdout.lock.json",
+            ),
+        ):
+            with self.subTest(source=source_name):
+                expected = expand_campaign(self.load(source_name))
+                observed = json.loads(
+                    (ROOT / "results" / "manifests" / lock_name).read_text(
+                        encoding="utf-8"
+                    )
+                )
+                self.assertEqual(observed, expected)
+                expanded[source_name] = expected
+
+        identification = expanded["gh200-tp2-nvlink-identification.json"]
+        holdout = expanded["gh200-tp2-nvlink-holdout.json"]
+        identification_coordinates = {
+            (
+                run["parameters"]["target_mean_attended_history_tokens"],
+                run["parameters"]["target_batch"],
+            )
+            for run in identification["run_order"]
+        }
+        holdout_coordinates = {
+            (
+                run["parameters"]["target_mean_attended_history_tokens"],
+                run["parameters"]["target_batch"],
+            )
+            for run in holdout["run_order"]
+        }
+        self.assertTrue(identification_coordinates.isdisjoint(holdout_coordinates))
+        for lock in expanded.values():
+            parameters = [run["parameters"] for run in lock["run_order"]]
+            self.assertEqual(
+                {row["tensor_parallel_size"] for row in parameters}, {2}
+            )
+            self.assertEqual(
+                {tuple(row["host_gpu_indices"]) for row in parameters}, {(0, 1)}
+            )
+            self.assertEqual({row["power_limit_w"] for row in parameters}, {700})
+        self.assertEqual(
+            {run["parameters"]["execution_state"] for run in holdout["run_order"]},
+            {"sealed-unreleased"},
+        )
+        self.assertEqual(
+            {
+                run["parameters"]["requires_frozen_identification_release"]
+                for run in holdout["run_order"]
+            },
+            {True},
         )
 
     def test_pilot_declared_order_is_rotated_across_repeats(self):

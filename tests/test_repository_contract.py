@@ -1,5 +1,6 @@
 import json
 import hashlib
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -47,6 +48,15 @@ class RepositoryContractTests(unittest.TestCase):
             ROOT / "scripts" / "run_gh200_mistral7b_holdout_batch.sh",
             ROOT / "scripts" / "run_gh200_gpu1_transfer_attempt.sh",
             ROOT / "scripts" / "run_gh200_gpu1_transfer_batch.sh",
+            ROOT / "scripts" / "check_gh200_tp2_preflight.sh",
+            ROOT / "scripts" / "run_gh200_tp2_attempt_core.sh",
+            ROOT / "scripts" / "run_gh200_tp2_batch_core.sh",
+            ROOT / "scripts" / "run_gh200_tp2_qualification_attempt.sh",
+            ROOT / "scripts" / "run_gh200_tp2_qualification_batch.sh",
+            ROOT / "scripts" / "run_gh200_tp2_identification_attempt.sh",
+            ROOT / "scripts" / "run_gh200_tp2_identification_batch.sh",
+            ROOT / "scripts" / "run_gh200_tp2_holdout_attempt.sh",
+            ROOT / "scripts" / "run_gh200_tp2_holdout_batch.sh",
         ):
             with self.subTest(script=script):
                 subprocess.run(["bash", "-n", str(script)], check=True)
@@ -181,6 +191,44 @@ class RepositoryContractTests(unittest.TestCase):
                 )
                 self.assertEqual(completed.returncode, 64)
 
+    def test_tp2_batch_drivers_reject_invalid_ranges(self):
+        cases = (
+            ("run_gh200_tp2_qualification_batch.sh", ("0", "3")),
+            ("run_gh200_tp2_qualification_batch.sh", ("2", "1")),
+            ("run_gh200_tp2_identification_batch.sh", ("0", "45")),
+            ("run_gh200_tp2_identification_batch.sh", ("2", "1")),
+            ("run_gh200_tp2_holdout_batch.sh", ("0", "30")),
+            ("run_gh200_tp2_holdout_batch.sh", ("2", "1")),
+        )
+        for name, arguments in cases:
+            with self.subTest(script=name, arguments=arguments):
+                completed = subprocess.run(
+                    [str(ROOT / "scripts" / name), *arguments],
+                    env={**os.environ, "TEL_REPO_ROOT": str(ROOT)},
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 64)
+
+    def test_tp2_attempt_drivers_reject_invalid_orders(self):
+        cases = (
+            ("run_gh200_tp2_qualification_attempt.sh", ("3",)),
+            ("run_gh200_tp2_identification_attempt.sh", ("45",)),
+            ("run_gh200_tp2_holdout_attempt.sh", ("30",)),
+        )
+        for name, arguments in cases:
+            with self.subTest(script=name, arguments=arguments):
+                completed = subprocess.run(
+                    [str(ROOT / "scripts" / name), *arguments],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(completed.returncode, 64)
+
     def test_calibration_requirements_are_fully_pinned(self):
         requirements = (
             ROOT / "calibration" / "requirements-gh200.txt"
@@ -247,6 +295,16 @@ class RepositoryContractTests(unittest.TestCase):
             ADDITIONAL_OFFICIAL_RELEASES[filename],
         )
 
+    def test_tp2_holdout_remains_compiled_sealed_before_identification(self):
+        from active_bytes.tp2_release import (  # noqa: PLC0415
+            OFFICIAL_RELEASE_FILENAME,
+            OFFICIAL_RELEASE_SHA256,
+        )
+
+        release = ROOT / "configs" / "addenda" / OFFICIAL_RELEASE_FILENAME
+        self.assertIsNone(OFFICIAL_RELEASE_SHA256)
+        self.assertFalse(release.exists())
+
     def test_held_out_evaluator_wrapper_is_executable_and_compiles(self):
         for name in (
             "evaluate_gh200_primary_held_out.py",
@@ -259,11 +317,32 @@ class RepositoryContractTests(unittest.TestCase):
             "verify_gh200_mistral7b_holdout_release.py",
             "evaluate_gh200_mistral7b_holdout.py",
             "evaluate_gh200_gpu1_transfer.py",
+            "align_tp2_repeat.py",
+            "freeze_gh200_tp2_identification.py",
+            "verify_gh200_tp2_holdout_release.py",
+            "evaluate_gh200_tp2_holdout.py",
         ):
             script = ROOT / "scripts" / name
             with self.subTest(script=script):
                 self.assertTrue(script.stat().st_mode & 0o111)
                 subprocess.run([sys.executable, "-m", "py_compile", str(script)], check=True)
+
+        for module in (
+            "tp2_alignment.py",
+            "tp2_identification.py",
+            "tp2_release.py",
+            "tp2_evaluation.py",
+        ):
+            with self.subTest(module=module):
+                subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "py_compile",
+                        str(ROOT / "src" / "active_bytes" / module),
+                    ],
+                    check=True,
+                )
 
 
 if __name__ == "__main__":

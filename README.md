@@ -124,6 +124,9 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `gh200-mistral7b-identification.json` | architecture-diverse duration-form identification/calibration | 9 | 5 |
 | `gh200-mistral7b-holdout.json` | sealed architecture-diverse form-replication holdout | 6 | 5 |
 | `gh200-gpu1-same-sku-transfer.json` | zero-refit transfer to the second physical GH200 | 9 | 5 |
+| `gh200-tp2-nvlink-qualification.json` | non-paper two-GH200 TP=2/NVLink admission | 3 | 1 |
+| `gh200-tp2-nvlink-identification.json` | TP=2-specific duration-form identification/calibration | 9 | 5 |
+| `gh200-tp2-nvlink-holdout.json` | sealed TP=2 functional-form holdout | 6 | 5 |
 
 The older generic grids remain design provenance.  The currently executable
 primary path is the checksummed GH200 BF16 V1/identification/evaluation set
@@ -210,6 +213,14 @@ The [GPU1 same-SKU transfer runbook](docs/gh200-gpu1-same-sku-transfer.md)
 defines the next experiment: the Qwen2.5-7B four-parameter model frozen on GPU0
 is applied without refitting to 45 runs on GPU1. This is a physical-device
 replication within one SKU and node, not cross-SKU or tensor-parallel evidence.
+
+The next separate execution stratum is the
+[two-GH200 TP=2/NVLink protocol](docs/gh200-tp2-nvlink.md). It sums scope-0
+board energy from both devices over one common decode boundary and fits new
+TP2-specific coefficients. The qualification and identification locks are
+executable; the disjoint holdout is intentionally sealed until a later
+content-addressed release. This protocol does not manipulate DVFS or identify
+a separate causal NVLink energy coefficient.
 
 ## Data policy
 

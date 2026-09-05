@@ -215,6 +215,10 @@ def run_pilot_repeat(
     lock = json.loads(campaign_lock.read_text(encoding="utf-8"))
     run = _locked_run(lock, run_id)
     parameters = run["parameters"]
+    tensor_parallel_size = int(parameters.get("tensor_parallel_size", 1))
+    pipeline_parallel_size = int(parameters.get("pipeline_parallel_size", 1))
+    if tensor_parallel_size <= 0 or pipeline_parallel_size <= 0:
+        raise ValueError("parallel sizes must be positive")
     locked_gpu_memory_utilization = parameters.get("gpu_memory_utilization")
     if locked_gpu_memory_utilization is not None and not math.isclose(
         float(locked_gpu_memory_utilization),
@@ -258,8 +262,8 @@ def run_pilot_repeat(
             kv_cache_dtype=requested_kv_dtype,
             seed=2027,
             max_model_len=max(prompt_lengths) + measured + 9,
-            tensor_parallel_size=1,
-            pipeline_parallel_size=1,
+            tensor_parallel_size=tensor_parallel_size,
+            pipeline_parallel_size=pipeline_parallel_size,
             gpu_memory_utilization=gpu_memory_utilization,
             max_num_batched_tokens=sum(prompt_lengths),
             max_num_seqs=batch,
@@ -281,8 +285,16 @@ def run_pilot_repeat(
         raise RuntimeError("resolved KV cache tensor dtype failed the frozen contract")
     weights = _weight_storage_report(engine)
     model_geometry = _model_geometry(engine, declared_kv_dtype)
+    accounting_weight_bytes = int(
+        parameters.get(
+            "accounting_total_weight_storage_bytes",
+            weights["unique_storage_bytes"],
+        )
+    )
+    if accounting_weight_bytes <= 0:
+        raise ValueError("accounting total weight storage must be positive")
     mechanism = active_bytes(
-        weights["unique_storage_bytes"],
+        accounting_weight_bytes,
         model_geometry["kv_bytes_per_historical_token"],
         batch,
         target_mean,
@@ -313,7 +325,16 @@ def run_pilot_repeat(
     overall_reasons: list[str] = []
     pynvml.nvmlInit()
     try:
-        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        visible_gpu_count = pynvml.nvmlDeviceGetCount()
+        if visible_gpu_count != tensor_parallel_size:
+            raise RuntimeError(
+                "visible NVML device count does not match tensor_parallel_size: "
+                f"{visible_gpu_count} != {tensor_parallel_size}"
+            )
+        handles = {
+            index: pynvml.nvmlDeviceGetHandleByIndex(index)
+            for index in range(visible_gpu_count)
+        }
         episode_id = 0
         while cumulative_decode_seconds < minimum_repeat_seconds:
             if episode_id >= 20:
@@ -344,7 +365,10 @@ def run_pilot_repeat(
                 raise RuntimeError("bootstrap did not produce exactly one token per request")
 
             torch.cuda.synchronize()
-            counter_start_mj = pynvml.nvmlDeviceGetTotalEnergyConsumption(handle)
+            counter_start_mj_by_visible_gpu = {
+                str(index): pynvml.nvmlDeviceGetTotalEnergyConsumption(handle)
+                for index, handle in handles.items()
+            }
             go_ns = time.monotonic_ns()
             for measured_index in range(measured):
                 row = _observe_engine_step(
@@ -358,7 +382,10 @@ def run_pilot_repeat(
                 previous_counts = dict(row["cumulative_output_tokens_by_request"])
             torch.cuda.synchronize()
             done_ns = time.monotonic_ns()
-            counter_end_mj = pynvml.nvmlDeviceGetTotalEnergyConsumption(handle)
+            counter_end_mj_by_visible_gpu = {
+                str(index): pynvml.nvmlDeviceGetTotalEnergyConsumption(handle)
+                for index, handle in handles.items()
+            }
             scheduler_after = _scheduler_snapshot(engine)
             validation = validate_episode_observations(
                 observations,
@@ -376,8 +403,24 @@ def run_pilot_repeat(
                 episode_reasons.append(
                     f"decode duration {decode_seconds:.6f}s is below {minimum_episode_seconds:.6f}s"
                 )
-            if counter_end_mj <= counter_start_mj:
-                episode_reasons.append("module cumulative energy counter did not advance")
+            counter_joules_by_visible_gpu = {
+                index: (
+                    counter_end_mj_by_visible_gpu[index]
+                    - counter_start_mj_by_visible_gpu[index]
+                )
+                / 1000.0
+                for index in counter_start_mj_by_visible_gpu
+            }
+            stalled_counters = [
+                index
+                for index, joules in counter_joules_by_visible_gpu.items()
+                if joules <= 0.0
+            ]
+            if stalled_counters:
+                episode_reasons.append(
+                    "module cumulative energy counter did not advance for visible "
+                    f"GPU indexes {stalled_counters}"
+                )
             useful_tokens = batch * measured
             episodes.append(
                 {
@@ -387,9 +430,33 @@ def run_pilot_repeat(
                     "boundary": {"go_monotonic_ns": go_ns, "done_monotonic_ns": done_ns},
                     "decode_seconds": decode_seconds,
                     "metered_useful_tokens": useful_tokens,
-                    "module_counter_start_mj": counter_start_mj,
-                    "module_counter_end_mj": counter_end_mj,
-                    "module_counter_joules": (counter_end_mj - counter_start_mj) / 1000.0,
+                    "module_counter_start_mj_by_visible_gpu": (
+                        counter_start_mj_by_visible_gpu
+                    ),
+                    "module_counter_end_mj_by_visible_gpu": (
+                        counter_end_mj_by_visible_gpu
+                    ),
+                    "module_counter_joules_by_visible_gpu": (
+                        counter_joules_by_visible_gpu
+                    ),
+                    "module_counter_joules_sum": sum(
+                        counter_joules_by_visible_gpu.values()
+                    ),
+                    **(
+                        {
+                            "module_counter_start_mj": (
+                                counter_start_mj_by_visible_gpu["0"]
+                            ),
+                            "module_counter_end_mj": (
+                                counter_end_mj_by_visible_gpu["0"]
+                            ),
+                            "module_counter_joules": (
+                                counter_joules_by_visible_gpu["0"]
+                            ),
+                        }
+                        if tensor_parallel_size == 1
+                        else {}
+                    ),
                     "scheduler_before": scheduler_before,
                     "scheduler_after": scheduler_after,
                     "scheduler_validation": scheduler_validation,
@@ -417,7 +484,9 @@ def run_pilot_repeat(
             if run["split"] in {"pilot", "placebo"}
             else "frozen-static-decode-repeat"
         ),
-        "paper_candidate_measurement": True,
+        "paper_candidate_measurement": bool(
+            parameters.get("paper_candidate_measurement", True)
+        ),
         "campaign_lock_sha256": lock["lock_sha256"],
         "run": {key: run[key] for key in ("run_id", "cell_id", "split", "repeat", "order")},
         "runtime": {
@@ -428,6 +497,9 @@ def run_pilot_repeat(
             "declared_kv_cache_dtype": declared_kv_dtype,
             "requested_kv_cache_dtype": requested_kv_dtype,
             "gpu_memory_utilization": gpu_memory_utilization,
+            "tensor_parallel_size": tensor_parallel_size,
+            "pipeline_parallel_size": pipeline_parallel_size,
+            "visible_gpu_count": tensor_parallel_size,
         },
         "geometry": {
             "batch": batch,
@@ -442,7 +514,11 @@ def run_pilot_repeat(
         "active_bytes": mechanism,
         "cache": {key: value for key, value in cache.items() if key != "tensors"},
         "cache_contract": cache_contract,
-        "weights": {key: value for key, value in weights.items() if key != "inventory"},
+        "weights": {
+            **{key: value for key, value in weights.items() if key != "inventory"},
+            "inventory_scope": "vllm-driver-worker",
+            "accounting_total_unique_storage_bytes": accounting_weight_bytes,
+        },
         "external_start_gate": external_gate,
         "episodes": episodes,
         "qc_reasons": overall_reasons,
@@ -482,15 +558,18 @@ def main(argv: list[str] | None = None) -> int:
         "weights": report["weights"],
         "episodes": [
             {
-                key: episode[key]
-                for key in (
-                    "episode_id",
-                    "decode_seconds",
-                    "metered_useful_tokens",
+                "episode_id": episode["episode_id"],
+                "decode_seconds": episode["decode_seconds"],
+                "metered_useful_tokens": episode["metered_useful_tokens"],
+                "module_counter_joules": episode.get(
                     "module_counter_joules",
-                    "qc_pass",
-                    "qc_reasons",
-                )
+                    episode["module_counter_joules_sum"],
+                ),
+                "module_counter_joules_sum": episode[
+                    "module_counter_joules_sum"
+                ],
+                "qc_pass": episode["qc_pass"],
+                "qc_reasons": episode["qc_reasons"],
             }
             for episode in report["episodes"]
         ],
