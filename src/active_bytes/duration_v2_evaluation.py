@@ -34,7 +34,10 @@ def _alignment_bundle_sha(rows: Sequence[Mapping[str, Any]]) -> str:
 
 
 def evaluate_v2_rows(
-    rows: Sequence[Mapping[str, Any]], model_artifact: Mapping[str, Any]
+    rows: Sequence[Mapping[str, Any]],
+    model_artifact: Mapping[str, Any],
+    *,
+    scientific_gate_name: str = "duration_v2_holdout_pass",
 ) -> dict[str, Any]:
     frozen = model_artifact["frozen_model"]
     coefficients = frozen["coefficients"]
@@ -148,7 +151,7 @@ def evaluate_v2_rows(
             "median_absolute_relative_error_pass": median_pass,
             "maximum_absolute_relative_error_pass": maximum_pass,
             "required_cell_count_pass": count_pass,
-            "duration_v2_holdout_pass": scientific_pass,
+            scientific_gate_name: scientific_pass,
         },
     }
 
@@ -158,11 +161,19 @@ def evaluate_campaign(
     model_artifact_path: Path,
     results_root: Path,
     output_dir: Path,
+    *,
+    result_domain: str = "duration-v2-holdout",
+    measurement: str = "gh200-duration-v2-held-out-evaluation",
+    output_prefix: str = "duration-v2",
+    scientific_gate_name: str = "duration_v2_holdout_pass",
+    required_artifact_path: Path | None = None,
+    required_lock_sha_field: str | None = None,
+    expected_host_gpu_index: int | None = None,
 ) -> dict[str, Any]:
     lock, rows, issues = collect_identification_rows(
         campaign_lock_path,
         results_root,
-        result_domain="duration-v2-holdout",
+        result_domain=result_domain,
     )
     model_sha = sha256_file(model_artifact_path)
     expected_model_shas = {
@@ -171,25 +182,52 @@ def evaluate_campaign(
     }
     if expected_model_shas != {model_sha}:
         issues.append("V2 model artifact digest does not match every locked run")
+    required_artifact_sha = None
+    if required_artifact_path is not None:
+        if not required_lock_sha_field:
+            issues.append("a required artifact needs a lock SHA field")
+        else:
+            required_artifact_sha = sha256_file(required_artifact_path)
+            expected_required_shas = {
+                str(run["parameters"].get(required_lock_sha_field))
+                for run in lock["run_order"]
+            }
+            if expected_required_shas != {required_artifact_sha}:
+                issues.append(
+                    f"required artifact digest does not match locked field {required_lock_sha_field}"
+                )
+    if expected_host_gpu_index is not None:
+        for row in rows:
+            alignment_path = results_root / str(
+                row["alignment_path_relative_to_results"]
+            )
+            alignment = json.loads(alignment_path.read_text(encoding="utf-8"))
+            if alignment.get("host_gpu_index") != expected_host_gpu_index:
+                issues.append(
+                    f"{row['run_id']}: host GPU index is "
+                    f"{alignment.get('host_gpu_index')!r}, expected {expected_host_gpu_index}"
+                )
     expected_runs = int(lock["run_count"])
     if len(rows) != expected_runs:
         issues.append(f"expected {expected_runs} accepted runs; found {len(rows)}")
     if issues:
         report = {
             "schema_version": 1,
-            "measurement": "gh200-duration-v2-held-out-evaluation",
+            "measurement": measurement,
             "accepted_run_count": len(rows),
             "issues": issues,
             "qc_pass": False,
         }
-        _atomic_json(output_dir / "duration-v2-summary.json", report)
+        _atomic_json(output_dir / f"{output_prefix}-summary.json", report)
         return report
 
     artifact = json.loads(model_artifact_path.read_text(encoding="utf-8"))
-    analysis = evaluate_v2_rows(rows, artifact)
+    analysis = evaluate_v2_rows(
+        rows, artifact, scientific_gate_name=scientific_gate_name
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    runs_path = output_dir / "duration-v2-runs.csv"
+    runs_path = output_dir / f"{output_prefix}-runs.csv"
     with runs_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(analysis["runs"][0].keys()))
         writer.writeheader()
@@ -198,7 +236,7 @@ def evaluate_campaign(
         {key: value for key, value in row.items() if not isinstance(value, (list, dict))}
         for row in analysis["cells"]
     ]
-    cells_path = output_dir / "duration-v2-cells.csv"
+    cells_path = output_dir / f"{output_prefix}-cells.csv"
     with cells_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(scalar_cells[0].keys()))
         writer.writeheader()
@@ -206,11 +244,14 @@ def evaluate_campaign(
 
     report = {
         "schema_version": 1,
-        "measurement": "gh200-duration-v2-held-out-evaluation",
+        "measurement": measurement,
         "campaign_id": lock["campaign_id"],
         "campaign_lock_sha256": lock["lock_sha256"],
         "alignment_bundle_sha256": _alignment_bundle_sha(rows),
         "model_artifact_sha256": model_sha,
+        "required_artifact_sha256": required_artifact_sha,
+        "result_domain": result_domain,
+        "expected_host_gpu_index": expected_host_gpu_index,
         "analysis": analysis,
         "tables": {
             "runs": {"path": runs_path.name, "sha256": sha256_file(runs_path)},
@@ -219,7 +260,7 @@ def evaluate_campaign(
         "issues": [],
         "qc_pass": True,
     }
-    report_path = output_dir / "duration-v2-evaluation.json"
+    report_path = output_dir / f"{output_prefix}-evaluation.json"
     _atomic_json(report_path, report)
     summary = {
         "schema_version": 1,
@@ -227,6 +268,7 @@ def evaluate_campaign(
         "campaign_lock_sha256": report["campaign_lock_sha256"],
         "alignment_bundle_sha256": report["alignment_bundle_sha256"],
         "model_artifact_sha256": model_sha,
+        "required_artifact_sha256": required_artifact_sha,
         "accepted_run_count": analysis["run_count"],
         "cell_count": analysis["cell_count"],
         "summary": analysis["summary"],
@@ -238,7 +280,7 @@ def evaluate_campaign(
         },
         "qc_pass": True,
     }
-    _atomic_json(output_dir / "duration-v2-summary.json", summary)
+    _atomic_json(output_dir / f"{output_prefix}-summary.json", summary)
     return summary
 
 
@@ -248,9 +290,30 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model-artifact", required=True, type=Path)
     parser.add_argument("--results-root", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--result-domain", default="duration-v2-holdout")
+    parser.add_argument(
+        "--measurement", default="gh200-duration-v2-held-out-evaluation"
+    )
+    parser.add_argument("--output-prefix", default="duration-v2")
+    parser.add_argument(
+        "--scientific-gate-name", default="duration_v2_holdout_pass"
+    )
+    parser.add_argument("--required-artifact", type=Path)
+    parser.add_argument("--required-lock-sha-field")
+    parser.add_argument("--expected-host-gpu-index", type=int)
     args = parser.parse_args(argv)
     result = evaluate_campaign(
-        args.campaign_lock, args.model_artifact, args.results_root, args.output_dir
+        args.campaign_lock,
+        args.model_artifact,
+        args.results_root,
+        args.output_dir,
+        result_domain=args.result_domain,
+        measurement=args.measurement,
+        output_prefix=args.output_prefix,
+        scientific_gate_name=args.scientific_gate_name,
+        required_artifact_path=args.required_artifact,
+        required_lock_sha_field=args.required_lock_sha_field,
+        expected_host_gpu_index=args.expected_host_gpu_index,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result.get("qc_pass") else 2

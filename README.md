@@ -22,8 +22,10 @@ Qwen2.5-14B/GH200 replication subsequently passed all prespecified primary
 holdout gates: all six cells were below 10% error, the maximum error was 1.92%,
 and the median error was 0.13%. This supports the same functional form with
 newly identified coefficients on a second model, but not universal
-coefficients or cross-platform transfer. A non-energy Mistral-7B qualification
-is frozen as the next architecture-level replication gate.
+coefficients or cross-platform transfer. The separately identified Mistral-7B
+architecture replication also passed all six sealed cells, with 1.43% maximum
+and 0.39% median error. The next frozen boundary is zero-refit transfer of the
+Qwen2.5-7B model to the second physical GH200 in the same node.
 
 ## What is ready
 
@@ -121,6 +123,7 @@ metered engine steps are instrumentation checks, not paper measurements.
 | `gh200-mistral7b-qualification-v1.json` | non-energy architecture-replication qualification | 1 | 1 |
 | `gh200-mistral7b-identification.json` | architecture-diverse duration-form identification/calibration | 9 | 5 |
 | `gh200-mistral7b-holdout.json` | sealed architecture-diverse form-replication holdout | 6 | 5 |
+| `gh200-gpu1-same-sku-transfer.json` | zero-refit transfer to the second physical GH200 | 9 | 5 |
 
 The older generic grids remain design provenance.  The currently executable
 primary path is the checksummed GH200 BF16 V1/identification/evaluation set
@@ -192,7 +195,7 @@ the same runbook records the exact verification, execution, and no-refit
 evaluation commands.
 
 The Qwen2.5-14B sealed holdout passed its primary form-replication gate. The
-next frozen step was the non-energy
+next step was the non-energy
 [Mistral-7B architecture qualification](docs/gh200-mistral7b-qualification.md).
 It passed with 14.504 GB of unique weight storage and 131,072 logical KV bytes
 per attended token. That pass is not an energy outcome. The subsequent 45-run
@@ -201,6 +204,12 @@ identification/calibration campaign passed its prespecified gates. The
 content-addressed release of its disjoint 30-run holdout; its frozen
 coefficients may not be refit or its residual envelope recalibrated after a
 holdout outcome is observed.
+
+The Mistral-7B sealed holdout subsequently passed its form-replication gate.
+The [GPU1 same-SKU transfer runbook](docs/gh200-gpu1-same-sku-transfer.md)
+defines the next experiment: the Qwen2.5-7B four-parameter model frozen on GPU0
+is applied without refitting to 45 runs on GPU1. This is a physical-device
+replication within one SKU and node, not cross-SKU or tensor-parallel evidence.
 
 ## Data policy
 

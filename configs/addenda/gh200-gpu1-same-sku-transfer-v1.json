@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "id": "gh200-gpu1-same-sku-transfer-v1",
+  "status": "frozen-before-target-device-energy-outcomes",
+  "created_utc": "2026-09-05T15:30:00Z",
+  "purpose": "Test zero-refit transfer of the frozen Qwen2.5-7B duration-augmented Token-Energy model from GPU index 0 to the second physical GH200 in the same node.",
+  "source_evidence": {
+    "source_gpu_index": 0,
+    "frozen_model_artifact": {
+      "path": "configs/addenda/gh200-v2-duration-holdout-v1.json",
+      "sha256": "350c92325a3636c7267449c8c2202d03b17c1b7be66fa95e47a45fc6ef6ce745"
+    },
+    "source_device_holdout_summary_sha256": "c1c0fb34cde3c1c697135698b04214c1e71ab307dc1992661c406cfe4ea5ec1f",
+    "source_device_holdout_result": {
+      "accepted_runs": 45,
+      "cells": 9,
+      "cells_below_ten_percent_error": 9,
+      "median_absolute_relative_error": 0.004087724478668154,
+      "maximum_absolute_relative_error": 0.02221508357343257
+    }
+  },
+  "target_device": {
+    "gpu_index": 1,
+    "accelerator_class": "NVIDIA GH200 144GB HBM3e",
+    "relation_to_source": "second physical device of the same SKU in the same node",
+    "source_to_target_topology": "NV18",
+    "energy_scope": "target GPU board only; NVML scope-0 instantaneous-power integral",
+    "module_scope_is_secondary": true,
+    "co_run_policy": "both physical GPUs must be free of model allocations before every target-device attempt",
+    "device_uuid_policy": "private raw provenance; not frozen in this public contract"
+  },
+  "pre_outcome_qualification": {
+    "qualification_utc": "2026-09-05T15:20:59Z",
+    "repository_commit": "8b554879d52b9e24bb2694d9876eead05f732266",
+    "profiler_preflight_sha256": "42aee1877f238da8913398a280252de321d536b9f82ebcf24854b7e654c8640a",
+    "memory_hotplug_mode": "online_movable",
+    "driver_version": "580.173.02",
+    "container_image": "nvcr.io/nvidia/vllm@sha256:15f380ad9c32f0ac57ac16e4b778c6f733c88b9ffe3a936035d0a59ad17b1aab",
+    "power_limit_w": 700,
+    "persistence_mode": "Enabled",
+    "both_physical_gpus_were_idle": true,
+    "dram_profiler_metric_contract_passed": true,
+    "profiling_permission_smoke_passed": true
+  },
+  "transfer_hypothesis": {
+    "equation": "E_token = intercept + alpha_weight * weight_decimal_GB_per_token + beta_kv * kv_read_write_decimal_GB_per_token + p_time_W * decode_seconds_per_useful_token",
+    "coefficients_are_copied_without_refit": true,
+    "duration_is_observed_over_each_target_device_decode_interval": true,
+    "target_coordinates_match_the_source_device_duration_holdout": true,
+    "primary_unit_of_analysis": "cell mean over five independent target-device runs"
+  },
+  "primary_gates": {
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.1,
+    "required_cells_passing_ten_percent_error": 9,
+    "required_cell_count": 9,
+    "required_repetitions_per_cell": 5,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_runs_are_not_deleted": true
+  },
+  "claim_policy": {
+    "passing_result": "supports zero-refit transfer across two physical devices of one GH200 SKU in one pinned software stack",
+    "failing_result": "rejects same-SKU device transfer while preserving the source-device result",
+    "not_authorized": [
+      "cross-SKU hardware transfer",
+      "cross-node transfer",
+      "tensor-parallel or NVLink energy attribution",
+      "universal coefficients",
+      "causal interpretation of p_time_watts as literal idle power",
+      "advance prediction without a separately supplied duration predictor"
+    ]
+  }
+}

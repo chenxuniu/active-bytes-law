@@ -15,6 +15,7 @@ def align_pilot_repeat(
     repeat: Mapping[str, Any],
     *,
     gpu_index: int = 0,
+    host_gpu_index: int | None = None,
     maximum_gap_seconds: float = 0.05,
     module_counter_error_limit: float = 0.02,
 ) -> dict[str, Any]:
@@ -101,6 +102,7 @@ def align_pilot_repeat(
         "campaign_lock_sha256": repeat["campaign_lock_sha256"],
         "run": repeat["run"],
         "gpu_index": gpu_index,
+        "host_gpu_index": host_gpu_index,
         "scope_contract": {
             "primary": "GPU-board scope-0 instantaneous-power integral",
             "secondary": "GH200 module scope-1 instantaneous-power integral",
@@ -138,6 +140,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--telemetry-jsonl", required=True, type=Path)
     parser.add_argument("--repeat-json", required=True, type=Path)
     parser.add_argument("--gpu-index", type=int, default=0)
+    parser.add_argument(
+        "--host-gpu-index",
+        type=int,
+        help="Host-visible GPU index; the container-visible telemetry index may differ.",
+    )
     parser.add_argument("--maximum-gap-ms", type=float, default=50.0)
     parser.add_argument("--module-counter-error-limit", type=float, default=0.02)
     parser.add_argument("--output-json", required=True, type=Path)
@@ -147,6 +154,7 @@ def main(argv: list[str] | None = None) -> int:
         read_jsonl(args.telemetry_jsonl),
         repeat,
         gpu_index=args.gpu_index,
+        host_gpu_index=args.host_gpu_index,
         maximum_gap_seconds=args.maximum_gap_ms / 1000.0,
         module_counter_error_limit=args.module_counter_error_limit,
     )

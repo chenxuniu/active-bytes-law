@@ -31,6 +31,7 @@ EXPECTED = {
     "gh200-mistral7b-qualification-v1.json": (1, 1),
     "gh200-mistral7b-identification.json": (9, 45),
     "gh200-mistral7b-holdout.json": (6, 30),
+    "gh200-gpu1-same-sku-transfer.json": (9, 45),
 }
 
 
@@ -207,6 +208,30 @@ class CampaignTests(unittest.TestCase):
                 for run in holdout["run_order"]
             },
             {True},
+        )
+
+    def test_gpu1_transfer_lock_matches_source_and_binds_target_device(self):
+        source = self.load("gh200-gpu1-same-sku-transfer.json")
+        expected = expand_campaign(source)
+        observed = json.loads(
+            (
+                ROOT
+                / "results"
+                / "manifests"
+                / "gh200-gpu1-same-sku-transfer.lock.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(observed, expected)
+        self.assertEqual(
+            {run["parameters"]["target_gpu_index"] for run in observed["run_order"]},
+            {1},
+        )
+        self.assertEqual(
+            {
+                run["parameters"]["execution_state"]
+                for run in observed["run_order"]
+            },
+            {"released-zero-shot-no-refit"},
         )
 
     def test_pilot_declared_order_is_rotated_across_repeats(self):

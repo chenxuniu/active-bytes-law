@@ -267,6 +267,7 @@ if [[ $runner_rc -eq 0 && -s "$repeat_json" && -s "$telemetry_jsonl" ]]; then
     --telemetry-jsonl "$telemetry_jsonl" \
     --repeat-json "$repeat_json" \
     --gpu-index 0 \
+    --host-gpu-index "$gpu_index" \
     --maximum-gap-ms 50 \
     --module-counter-error-limit 0.02 \
     --output-json "$alignment_json" \

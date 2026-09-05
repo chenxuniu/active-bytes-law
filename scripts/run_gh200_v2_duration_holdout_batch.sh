@@ -9,6 +9,7 @@ fi
 start_order=$1
 end_order=$2
 gpu_index=${3:-0}
+expected_gpu_index=${TEL_EXPECTED_GPU_INDEX:-0}
 for value in "$start_order" "$end_order"; do
   if [[ ! "$value" =~ ^[0-9]+$ ]] || (( value < 0 || value >= 45 )); then
     echo "orders must be integers from 0 through 44" >&2
@@ -19,16 +20,17 @@ if (( start_order > end_order )); then
   echo "START_ORDER must not exceed END_ORDER" >&2
   exit 64
 fi
-if [[ "$gpu_index" != "0" ]]; then
-  echo "the frozen GH200 V2 holdout is bound to GPU index 0" >&2
+if [[ "$gpu_index" != "$expected_gpu_index" ]]; then
+  echo "this frozen campaign is bound to GPU index $expected_gpu_index" >&2
   exit 64
 fi
 
 repo_root=${TEL_REPO_ROOT:-/srv/token-energy-law/repo}
 results_root=${TEL_RESULTS_ROOT:-/srv/token-energy-law/results}
-campaign_lock="$repo_root/results/manifests/gh200-v2-duration-holdout.lock.json"
+campaign_lock=${TEL_V2_CAMPAIGN_LOCK:-$repo_root/results/manifests/gh200-v2-duration-holdout.lock.json}
 attempt_runner=${TEL_V2_ATTEMPT_RUNNER:-$repo_root/scripts/run_gh200_v2_duration_holdout_attempt.sh}
-result_domain=duration-v2-holdout
+result_domain=${TEL_V2_RESULT_DOMAIN:-duration-v2-holdout}
+batch_result_domain=${TEL_V2_BATCH_RESULT_DOMAIN:-duration-v2-holdout-batch-runs}
 locked_campaign_sha=$(python3 - "$campaign_lock" <<'PY'
 import json
 import sys
@@ -62,7 +64,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 batch_tag="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-batch_dir="$results_root/duration-v2-holdout-batch-runs/orders-${start_order}-${end_order}/batch-$batch_tag"
+batch_dir="$results_root/$batch_result_domain/orders-${start_order}-${end_order}/batch-$batch_tag"
 mkdir -p "$batch_dir"
 batch_log="$batch_dir/batch.events.log"
 batch_summary="$batch_dir/batch.summary.json"
@@ -119,7 +121,10 @@ path = pathlib.Path(sys.argv[1])
 failed = [int(value) for value in sys.argv[6].split(",") if value]
 report = {
     "schema_version": 1,
-    "measurement": "gh200-v2-duration-holdout-batch-execution-summary",
+    "measurement": os.environ.get(
+        "TEL_V2_BATCH_MEASUREMENT",
+        "gh200-v2-duration-holdout-batch-execution-summary",
+    ),
     "completed_at_utc": datetime.now(timezone.utc).isoformat(),
     "status": "complete" if not failed else "complete-with-preserved-failures",
     "start_order": int(sys.argv[2]),

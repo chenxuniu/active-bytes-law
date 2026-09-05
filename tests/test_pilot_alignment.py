@@ -50,12 +50,14 @@ def repeat():
 class PilotAlignmentTests(unittest.TestCase):
     def test_constant_power_repeat_uses_ratio_of_totals(self):
         report = align_pilot_repeat(
-            telemetry(), repeat(), maximum_gap_seconds=1.1
+            telemetry(), repeat(), host_gpu_index=1, maximum_gap_seconds=1.1
         )
         self.assertTrue(report["qc_pass"], report["qc_reasons"])
         self.assertEqual(report["totals"]["gpu_joules_per_token"], 6.0)
         self.assertEqual(report["totals"]["module_counter_joules_per_token"], 9.0)
         self.assertEqual(report["totals"]["decode_seconds"], 30.0)
+        self.assertEqual(report["gpu_index"], 0)
+        self.assertEqual(report["host_gpu_index"], 1)
 
     def test_module_counter_disagreement_fails(self):
         value = repeat()
