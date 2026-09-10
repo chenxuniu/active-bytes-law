@@ -204,6 +204,29 @@ class TP2ReleaseTests(unittest.TestCase):
                 any("primary gates" in issue for issue in report["issues"])
             )
 
+    def test_edited_record_fails_against_pinned_digest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            values = self.fixture(Path(directory))
+            release = values[0]
+            expected = digest(release)
+            value = json.loads(release.read_text())
+            value["release_id"] = "replacement"
+            release.write_text(json.dumps(value))
+            report = verify_tp2_release(*values, expected_release_sha256=expected)
+            self.assertFalse(report["qc_pass"])
+            self.assertTrue(any("record digest" in issue for issue in report["issues"]))
+
+    def test_release_cannot_change_frozen_coefficients(self):
+        with tempfile.TemporaryDirectory() as directory:
+            values = self.fixture(Path(directory))
+            release = values[0]
+            value = json.loads(release.read_text())
+            value["frozen_estimates"]["coefficients"]["p_time_watts"] = 999.0
+            release.write_text(json.dumps(value))
+            report = verify_tp2_release(*values, expected_release_sha256=digest(release))
+            self.assertFalse(report["qc_pass"])
+            self.assertTrue(any("released coefficients" in issue for issue in report["issues"]))
+
     def test_changed_frozen_artifact_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             values = self.fixture(Path(directory))

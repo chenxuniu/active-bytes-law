@@ -18,10 +18,11 @@ REQUIRED_ARTIFACTS = (
     "identification-freeze-summary.json",
 )
 OFFICIAL_RELEASE_FILENAME = "gh200-tp2-nvlink-holdout-release-v1.json"
-# Filled only by the later, reviewed release commit after identification is
-# frozen.  Keeping this unset makes the currently sealed holdout fail closed
-# even if an untrusted record and adjacent sidecar are placed on the node.
-OFFICIAL_RELEASE_SHA256: str | None = None
+# Binds the 20260910T222017Z identification freeze before holdout execution.
+# An edited record and replacement sidecar cannot override this trust anchor.
+OFFICIAL_RELEASE_SHA256: str | None = (
+    "526bd61fcdaf64f2b97bf77958ebb2c5063fe5a5549baf1b84fea4d715028ca7"
+)
 
 
 def verify_tp2_release(

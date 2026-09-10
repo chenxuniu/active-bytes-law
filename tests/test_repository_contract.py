@@ -295,15 +295,20 @@ class RepositoryContractTests(unittest.TestCase):
             ADDITIONAL_OFFICIAL_RELEASES[filename],
         )
 
-    def test_tp2_holdout_remains_compiled_sealed_before_identification(self):
+    def test_tp2_holdout_release_binds_exact_record_and_original_gates(self):
         from active_bytes.tp2_release import (  # noqa: PLC0415
             OFFICIAL_RELEASE_FILENAME,
             OFFICIAL_RELEASE_SHA256,
         )
 
         release = ROOT / "configs" / "addenda" / OFFICIAL_RELEASE_FILENAME
-        self.assertIsNone(OFFICIAL_RELEASE_SHA256)
-        self.assertFalse(release.exists())
+        self.assertEqual(hashlib.sha256(release.read_bytes()).hexdigest(), OFFICIAL_RELEASE_SHA256)
+        record = json.loads(release.read_text())
+        addendum = json.loads((ROOT / "configs/addenda/gh200-tp2-nvlink-v1.json").read_text())
+        self.assertEqual(record["primary_gates"], addendum["holdout_gates"])
+        self.assertEqual(record["analysis_equation"], addendum["analysis_policy"]["equation"])
+        self.assertEqual(record["identification_campaign"]["accepted_run_count"], 45)
+        self.assertFalse(record["identification_decisions"]["tp2_functional_form_confirmed"])
 
     def test_held_out_evaluator_wrapper_is_executable_and_compiles(self):
         for name in (

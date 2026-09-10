@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "release_id": "gh200-tp2-nvlink-holdout-release-v1",
+  "created_utc": "2026-09-10T22:22:32Z",
+  "decision_stage": "after-identification-freeze-before-any-tp2-holdout-outcome",
+  "execution_addendum_sha256": "88e93cce1b06a811be9f0abd7f63f55d590c203e65f6aeeb9fcb845571f80d17",
+  "identification_campaign": {
+    "campaign_id": "token-energy-law-gh200-tp2-nvlink-identification-v1",
+    "campaign_lock_sha256": "02dacc6de591a8cd5f32b3738c767ad2456a4a05946e1f452653b3ba2ae57292",
+    "campaign_lock_file_sha256": "acaad642667bcbcbae8f4e465e1e7b615dc68683340c77c22a8d0b276be54b80",
+    "accepted_run_count": 45,
+    "fit_run_count": 30,
+    "calibration_run_count": 15,
+    "outcome": "sum_two_gpu_boards_joules_per_useful_token"
+  },
+  "identification_freeze": {
+    "relative_to_results_root": "tp2-identification-freeze/20260910T222017Z",
+    "backup_archive": "tp2-identification-20260910T222056Z.tar.gz",
+    "backup_archive_sha256": "417e91ef11c512681bfd235fe7c7ed98adf633cd2cf74a0836d1be7bfb937a96"
+  },
+  "qualification": {
+    "accepted_run_count": 3,
+    "alignment_bundle_sha256": "959df1c77fe479cd5efcc07c825849706199070f4fd9d071740ca256dcfefbae"
+  },
+  "frozen_artifacts": {
+    "coefficient-artifact.json": "d76752c8557849077a1abdc1ff54cb9ebfb66349df287dc1415abfa01b830e16",
+    "discrepancy-envelope.json": "6abbf328575526e4578d5e088f383be7b3614cc89689514f7fdb8727b1348fa9",
+    "accepted-runs.csv": "296b23dc0ff34c6f16caad085fc9a34ed166076aceb387913cdebad7e550fc0b",
+    "identification-freeze-summary.json": "6bb0e6d7c334bfd5d35a910e111bea3ae453ae55c7627881627ecd127fdaa7d1"
+  },
+  "analysis_equation": "E_pair_token = intercept_tp2 + alpha_tp2 * weight_decimal_GB_per_token + beta_tp2 * kv_read_write_decimal_GB_per_token + p_time_tp2_W * decode_seconds_per_useful_token",
+  "frozen_estimates": {
+    "equation": "E_pair_token = intercept_tp2 + alpha_tp2 * weight_decimal_GB_per_token + beta_tp2 * kv_read_write_decimal_GB_per_token + p_time_tp2_W * decode_seconds_per_useful_token",
+    "coefficients": {
+      "alpha_weight_joules_per_decimal_gb": 0.11170566937491966,
+      "beta_kv_joules_per_decimal_gb": 0.18060912840306464,
+      "intercept_joules_per_token": 0.01444424901896646,
+      "p_time_watts": 314.1014063180578
+    },
+    "common_residual_range_joules_per_token": [
+      -0.0014821958651409983,
+      0.013667854618695904
+    ]
+  },
+  "identification_decisions": {
+    "identification_gate_pass": true,
+    "nvlink_energy_separately_attributed": false,
+    "time_term_finite_nonnegative_pass": true,
+    "tp2_functional_form_confirmed": false,
+    "traffic_slope_positivity_pass": true
+  },
+  "holdout_campaign": {
+    "campaign_id": "token-energy-law-gh200-tp2-nvlink-holdout-v1",
+    "campaign_lock_sha256": "d8bcee68d3cd8e285cb87fbb67961b365befc4873c5811f55e7f52da452b6d13",
+    "campaign_lock_file_sha256": "538d6f70f96950ea31475326fc735bad7b15f7ec7d48914eb41ad7e2b9b4c779",
+    "run_count": 30,
+    "cell_count": 6,
+    "repetitions_per_cell": 5,
+    "target_batches": [
+      8,
+      24
+    ],
+    "target_mean_attended_history_tokens": [
+      6144,
+      12288,
+      14336
+    ]
+  },
+  "primary_gates": {
+    "unit_of_analysis": "cell mean over five independent runs",
+    "median_absolute_relative_error_maximum": 0.05,
+    "maximum_absolute_relative_error_maximum": 0.1,
+    "required_cells_passing_ten_percent_error": 6,
+    "coefficient_refit_before_gate_decision": false,
+    "failed_or_censored_cells_are_not_deleted": true
+  },
+  "release_policy": {
+    "released": true,
+    "coefficients_are_immutable": true,
+    "residual_envelope_is_immutable": true,
+    "holdout_may_not_refit": true,
+    "duration_uses_same_interval_observation": true,
+    "both_device_energies_must_be_summed": true,
+    "failed_attempts_are_preserved": true,
+    "accepted_attempts_are_never_overwritten": true,
+    "nvlink_energy_separately_attributed": false,
+    "tp1_coefficients_are_tp2_predictions": false,
+    "dvfs_claim_authorized": false,
+    "cross_sku_claim_authorized": false
+  }
+}

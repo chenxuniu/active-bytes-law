@@ -61,7 +61,7 @@ inclusive range skips exactly one accepted alignment and retries missing
 orders. Every attempt has its own timestamped directory; no accepted artifact
 is overwritten.
 
-## Tomorrow: first safe command
+## Admission checks
 
 Do not start while another experiment owns either GPU. First update the node
 checkout and inspect both devices:
@@ -171,9 +171,17 @@ Stop here and preserve the freeze directory. Do not run the holdout. A new
 release record must be created and reviewed after the identification artifacts
 exist and before any holdout outcome is observed.
 
-## Released holdout (future, intentionally unavailable now)
+## Released holdout
 
-The runner expects a later checksummed
+The 2026-09-10 release binds the completed 45-run identification freeze at
+`tp2-identification-freeze/20260910T222017Z` and the backup archive
+`tp2-identification-20260910T222056Z.tar.gz` (SHA256
+`417e91ef11c512681bfd235fe7c7ed98adf633cd2cf74a0836d1be7bfb937a96`).
+Three failed identification attempts are preserved; their replacements passed
+the unchanged QC criteria. Identification gates passed, but this is not yet
+confirmation of the TP2 form.
+
+The runner requires the checksummed
 `configs/addenda/gh200-tp2-nvlink-holdout-release-v1.json`. Without that exact
 record, its reviewed digest compiled into the verifier, and
 `TEL_TP2_IDENTIFICATION_FREEZE_DIR`, it exits before starting a GPU
@@ -183,10 +191,39 @@ residual ranges, locks, or artifact hashes.
 After a reviewed release exists, validate order 0, then batch 1--29:
 
 ```bash
-export TEL_TP2_IDENTIFICATION_FREEZE_DIR=/srv/token-energy-law/results/tp2-identification-freeze/EXACT_TAG
+export TEL_TP2_IDENTIFICATION_FREEZE_DIR=/srv/token-energy-law/results/tp2-identification-freeze/20260910T222017Z
 ./scripts/run_gh200_tp2_holdout_attempt.sh 0
-./scripts/run_gh200_tp2_holdout_batch.sh 1 29
 ```
+
+After order 0 is accepted, open a tmux session and run the remaining orders
+sequentially. Refresh sudo credentials in the same session; otherwise the
+batch can block on a password prompt after detaching. Neither GPU may run
+another experiment concurrently.
+
+```bash
+tmux new -s tel-tp2-holdout
+cd /srv/token-energy-law/repo
+export TEL_TP2_IDENTIFICATION_FREEZE_DIR=/srv/token-energy-law/results/tp2-identification-freeze/20260910T222017Z
+(
+  sudo -v || exit 1
+  (while sleep 60; do sudo -n -v || exit 1; done) &
+  TEL_TP2_SUDO_PID=$!
+  trap 'kill "$TEL_TP2_SUDO_PID" 2>/dev/null || true' EXIT
+  ./scripts/run_gh200_tp2_holdout_batch.sh 1 29
+)
+```
+
+Detach with `Ctrl-b`, then `d`. From a fresh SSH session, locate the batch
+without attaching to tmux:
+
+```bash
+find /srv/token-energy-law/results/tp2-holdout-batch-runs/orders-1-29 \
+  -name batch.events.log -type f -print
+```
+
+Use `tail -30` on the printed log. `complete-with-preserved-failures` means
+the queue ended, not that all 30 outcomes were accepted; inspect failed
+orders and retry only missing runs under the unchanged protocol.
 
 Evaluate all 30 accepted outcomes without refitting:
 

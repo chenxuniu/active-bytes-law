@@ -217,9 +217,10 @@ replication within one SKU and node, not cross-SKU or tensor-parallel evidence.
 The next separate execution stratum is the
 [two-GH200 TP=2/NVLink protocol](docs/gh200-tp2-nvlink.md). It sums scope-0
 board energy from both devices over one common decode boundary and fits new
-TP2-specific coefficients. The qualification and identification locks are
-executable; the disjoint holdout is intentionally sealed until a later
-content-addressed release. This protocol does not manipulate DVFS or identify
+TP2-specific coefficients. The three qualification and 45 identification runs
+passed their gates; a content-addressed release now binds the frozen fit and
+residual envelope for the 30-run disjoint holdout. No TP2 holdout conclusion
+is yet available. This protocol does not manipulate DVFS or identify
 a separate causal NVLink energy coefficient.
 
 ## Data policy
